@@ -26,6 +26,8 @@ export const kf = (f: number, keys: [number, number][], ease = easeInOut) => {
 export const rnd = (seed: number, i: number) => Math.abs(Math.sin(seed * 31.7 + i * 12.9898) * 43758.5453) % 1;
 /** A wobble that dies away: for things that land, get hit or get knocked. */
 export const settle = (t: number, amp: number, speed = 1.4, decay = 8) => (t > 0 ? Math.sin(t * speed) * amp * Math.exp(-t / decay) : 0);
+/** A steady wobble: for things that are knocked, boil or hover. */
+export const wob = (t: number, speed = 1.4, amp = 2, phase = 0) => Math.sin(phase + t / speed) * amp;
 
 /** The camera: centre the world point (cx, cy) on screen at zoom s (1920 x 1080 frame). */
 export const camT = (cx: number, cy: number, s: number) => `translate(960 540) scale(${s}) translate(${-cx} ${-cy})`;

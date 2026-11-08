@@ -3,19 +3,19 @@ import { z } from 'zod';
 import type { ShotProps } from '../episode';
 import type { CastName, Pose } from '../rig';
 import { LOOKS, basePose, poseAt, faceAt, joints, toWorld, walkPose, LEG_LEN, HEAD } from '../rig';
-import { kf, clamp, easeOut, easeIn, backOut, rnd, settle, camT } from '../anim';
+import { kf, clamp, easeOut, easeIn, backOut, rnd, settle, wob, camT } from '../anim';
 import { Glow, LightVeil } from '../light';
 import { Foreground } from '../kit';
-import { Cat, Mug, OpenBook } from '../props';
+import { Cat, Mug, OpenBook, CookieTop, CookieStack } from '../props';
 import { Hero } from '../rig';
-import { Sparkle, Tag, TitleCard } from '../ui';
+import { Sparkle, Tag, TitleCard, PasteIn, FocusRings } from '../ui';
 import { stand, Tabletop } from '../furnish';
 import { FONT } from '../fonts';
 import { Kitchen, KitchenIsland, KITCHEN, islandTop } from '../sets/kitchen';
 import { Study, Desk } from '../sets/study';
 import { Classroom, SchoolDesk } from '../sets/classroom';
 import { Rooftop } from '../sets/rooftop';
-import { Schematic, SCH, Arrow, SchLabel, DrawOn } from '../sets/schematic';
+import { Schematic, SCH, Arrow, SchLabel, DrawOn, CountUp } from '../sets/schematic';
 import { BankPhone, Ring, CoinHead, CoinPile, Cake, BalanceChip, GOLD, GOLD_L, fmtEur } from './widgets';
 
 // The archetype catalogue: one component per recurring shot motif. Props are plain
@@ -28,6 +28,7 @@ type Arch = ShotProps & { uid?: string };
 // ---------- wideRoom (S1/S3/S10): the wide room, the hero by the island, a phone reading ----------
 export const wideRoomZ = z.object({
   mood: z.enum(['curious', 'cheer', 'uneasy']).default('curious'),
+  room: z.enum(['kitchen', 'study']).default('kitchen'),
   phone: z.string().default(''),
   glow: z.number().min(0).max(1).default(0.6),
   ring: z.boolean().default(false),
@@ -45,11 +46,13 @@ const WIDE_FACE: Record<WideRoomProps['mood'], [number, Pose['expr']][]> = {
   uneasy: [[0, 'oops'], [9, 'worried']],
 };
 
-export const WideRoom: React.FC<Arch & WideRoomProps> = ({ t, len, mood = 'curious', phone = '', glow = 0.6, ring = false, buzz = false, cake = false, candles = '16', deadCandle = false }) => {
-  const phonePt = islandTop(0.5, 0.42);
+export const WideRoom: React.FC<Arch & WideRoomProps> = ({ t, len, uid = 'wr', mood = 'curious', room = 'kitchen', phone = '', glow = 0.6, ring = false, buzz = false, cake = false, candles = '16', deadCandle = false }) => {
+  const study = room === 'study';
+  const phonePt = study ? { x: 1180, y: 664 } : islandTop(0.5, 0.42);
   const cakePt = islandTop(0.68, 0.5);
+  const standPt = study ? { x: 960, y: 712, scale: STAND.scale } : STAND;
   const pose =
-    mood === 'cheer'
+    !study && mood === 'cheer'
       ? poseAt(t, [
           { f: 0, p: { x: STAND.x, y: STAND.y, scale: STAND.scale, yaw: 0.1, look: 0.55, armL: { a: 26, b: 16 }, armR: { a: 26, b: 16 } } },
           { f: 4, p: { squash: 0.05 } },
@@ -57,17 +60,41 @@ export const WideRoom: React.FC<Arch & WideRoomProps> = ({ t, len, mood = 'curio
           { f: 14, p: { armL: { a: 144, b: 16 }, armR: { a: 140, b: 18 }, squash: 0 } },
           { f: 22, p: { armL: { a: 140, b: 18 }, armR: { a: 136, b: 20 } } },
         ])
-      : mood === 'uneasy'
+      : !study && mood === 'uneasy'
         ? poseAt(t, [
             { f: 0, p: { x: STAND.x, y: STAND.y, scale: STAND.scale, yaw: 0.25, look: 0.85, armL: { a: 16, b: -8 }, armR: { a: 26, b: 24 }, headTilt: 5 } },
             { f: 8, p: { headTilt: 11, look: 1, armR: { a: 20, b: 18 } }, ease: easeOut },
             { f: 18, p: { headTilt: 4, armR: { a: 30, b: 22 } }, ease: easeOut },
           ])
-        : poseAt(t, [
-            { f: 0, p: { x: STAND.x, y: STAND.y, scale: STAND.scale, yaw: 0.35, look: 0.75, armL: { a: 14, b: -8 }, armR: { a: 22, b: -10 }, headTilt: 0 } },
-            { f: 14, p: { headTilt: 6, look: 0.95, armR: { a: 30, b: 30 } }, ease: easeOut },
-            { f: 22, p: { headTilt: 9, armR: { a: 26, b: 26 } } },
-          ]);
+        : study
+          ? poseAt(t, [
+              { f: 0, p: { x: standPt.x, y: standPt.y, scale: standPt.scale, yaw: 0.5, look: 0.6, armL: { a: 14, b: -8 }, armR: { a: 22, b: -10 } } },
+              { f: 6, p: { armR: { a: 74, b: 26 }, headTilt: 3 }, ease: easeOut },
+              { f: 14, p: { armR: { a: 70, b: 22 } } },
+              { f: 22, p: { headTilt: -4 } },
+            ])
+          : poseAt(t, [
+              { f: 0, p: { x: STAND.x, y: STAND.y, scale: STAND.scale, yaw: 0.35, look: 0.75, armL: { a: 14, b: -8 }, armR: { a: 22, b: -10 }, headTilt: 0 } },
+              { f: 14, p: { headTilt: 6, look: 0.95, armR: { a: 30, b: 30 } }, ease: easeOut },
+              { f: 22, p: { headTilt: 9, armR: { a: 26, b: 26 } } },
+            ]);
+  if (study)
+    return (
+      <g transform={camT(kf(t, [[0, 990], [len, 1000]]), 545, kf(t, [[0, 0.86], [len, 0.93]]))}>
+        <Study t={t + 110} id={`ar-wr-${uid}`} />
+        {phone ? <BankPhone x={phonePt.x} y={phonePt.y - 10} w={66} rot={-5} value={phone} glow={glow} gold={mood === 'cheer'} /> : null}
+        {ring && phone ? <Ring x={phonePt.x} y={phonePt.y - 16} t={t - 2} sx={1.4} sy={0.8} /> : null}
+        <Desk x0={560} x1={1360} y={700} lamp={false} laptop={false} />
+        <g transform={`translate(1120 ${700 + wob(t, 6, 3, 26)})`}>
+          <Mug x={0} y={0} rot={wob(t, 12, 1.6, 0) - 20} f={t} steam={0.5} />
+        </g>
+        <Hero look={LOOKS.pipHood} pose={{ ...pose, ...faceAt(t, WIDE_FACE[mood]) }} rimId="rimR" shadow={0} />
+        <Foreground blur={10}>
+          <path d="M 320 1030 Q 380 760 330 620 Q 300 800 190 1030 Z" fill="#0E1218" />
+          <ellipse cx={1740} cy={1040} rx={300} ry={170} fill="#100D15" />
+        </Foreground>
+      </g>
+    );
   return (
     <g transform={camT(kf(t, [[0, 940], [len, 960]]), 588, kf(t, [[0, 0.98], [len, 1.06]]))}>
       <Kitchen t={t + 40} id="ar-k" veil={mood === 'curious' ? 0.34 : 0.5} />
@@ -426,31 +453,51 @@ export const ObjectRain: React.FC<Arch & ObjectRainProps> = ({ t, len }) => {
 // ---------- titleReveal (S11/S16/S20): the wide rooftop at dusk, the hero raises the phone, the title ----------
 export const titleRevealZ = z.object({
   lines: z.tuple([z.string(), z.string()]),
+  variant: z.enum(['raise', 'cheer']).default('raise'),
   accent: z.string().optional(),
   accentT: z.number().int().nonnegative().default(38),
   phone: z.boolean().default(true),
   cat: z.boolean().default(true),
   sparkle: z.boolean().default(true),
+  stacks: z.array(z.object({ x: z.number(), n: z.number().int().min(2).max(12), at: z.number().int().nonnegative().default(6) })).default([]),
   size: z.number().default(92),
   y: z.number().default(170),
 });
 export type TitleRevealProps = z.infer<typeof titleRevealZ>;
 const ROOF_FEET = 840;
 
-export const TitleReveal: React.FC<Arch & TitleRevealProps> = ({ t, len, lines, accent, accentT, phone, cat, sparkle, size, y }) => {
-  const pose = poseAt(t, [
-    { f: 0, p: { x: 960, y: ROOF_FEET - LEG_LEN * 0.62, scale: 0.62, yaw: 0, look: 0.2, armL: { a: 18, b: 6 }, armR: { a: 40, b: 60 }, headTilt: 0 } },
-    { f: 10, p: { armR: { a: 138, b: 16 }, look: 0.45, headTilt: -4 }, ease: easeOut },
-    { f: 18, p: { armR: { a: 142, b: 10 } } },
-  ]);
+export const TitleReveal: React.FC<Arch & TitleRevealProps> = ({ t, len, lines, variant = 'raise', accent, accentT, phone, cat, sparkle, stacks, size, y }) => {
+  const cheer = variant === 'cheer';
+  const pose = cheer
+    ? poseAt(t, [
+        { f: 0, p: { x: 960, y: ROOF_FEET - LEG_LEN * 0.62, scale: 0.62, yaw: 0, look: 0.2, armL: { a: 16, b: 8 }, armR: { a: 20, b: 8 } } },
+        { f: 21, p: { squash: 0.04, headTilt: -2 }, ease: easeOut },
+        { f: 27, p: { armL: { a: 150, b: 10 }, armR: { a: 150, b: 10 }, squash: -0.06, headTilt: -5 }, ease: easeOut },
+        { f: 34, p: { squash: 0 } },
+      ])
+    : poseAt(t, [
+        { f: 0, p: { x: 960, y: ROOF_FEET - LEG_LEN * 0.62, scale: 0.62, yaw: 0, look: 0.2, armL: { a: 18, b: 6 }, armR: { a: 40, b: 60 }, headTilt: 0 } },
+        { f: 10, p: { armR: { a: 138, b: 16 }, look: 0.45, headTilt: -4 }, ease: easeOut },
+        { f: 18, p: { armR: { a: 142, b: 10 } } },
+      ]);
   const j = joints(pose);
   const ph = toWorld(pose, j.armR.end);
+  const spin = cheer ? (t < 21 ? t * 3 : 63 + (t - 21) * 30 * Math.exp(-(t - 21) / 22)) : undefined;
   return (
     <g transform={camT(960, kf(t, [[0, 540], [len, 560]]), kf(t, [[0, 1.0], [len, 1.07]]))}>
-      <Rooftop t={t} sunX={960} sunY={700 - 40 * easeOut(clamp(t / 40))} />
+      <Rooftop t={t} sunX={960} sunY={700 - 40 * easeOut(clamp(t / 40))} clock={cheer} spin={spin} />
       {cat ? <Cat x={620} y={ROOF_FEET + 6} mood={t > 12 ? 'alert' : 'sleep'} f={t} /> : null}
-      <Hero look={LOOKS.pipHood} pose={{ ...pose, ...faceAt(t, [[0, 'happy'], [22, 'smug']]) }} rimId="rimR" shadow={0.6} />
-      {phone ? <BankPhone x={ph.x + 6} y={ph.y + 6} w={54} rot={-14} value="1 000 000 €" glow={1} gold /> : null}
+      {(stacks ?? []).map((s, i) => {
+        if (t < s.at) return null;
+        const k2 = easeIn(clamp((t - s.at) / 12));
+        return k2 < 1 ? (
+          <CookieTop key={i} x={250 + (s.x - 250) * k2} y={160 + (826 - 160) * k2} r={44} rot={k2 * 240} />
+        ) : (
+          <CookieStack key={i} x={s.x} y={830} n={s.n} s={0.9} />
+        );
+      })}
+      <Hero look={LOOKS.pipHood} pose={{ ...pose, ...faceAt(t, cheer ? [[0, 'happy'], [27, 'smug']] : [[0, 'happy'], [22, 'smug']]) }} rimId="rimR" shadow={0.6} />
+      {!cheer && phone ? <BankPhone x={ph.x + 6} y={ph.y + 6} w={54} rot={-14} value="1 000 000 €" glow={1} gold /> : null}
       {sparkle ? <Sparkle x={ph.x + 64} y={ph.y - 46} t={t - 16} s={1.2} /> : null}
       <TitleCard t={t} lines={lines} accent={accent} accentT={accentT} y={y} size={size} />
     </g>
@@ -518,14 +565,41 @@ export const CityTurn: React.FC<Arch & CityTurnProps> = ({ t, len, redAt, crackA
 
 // ---------- closeUpTurn (S14/S15): the extreme close-up, the light turns ----------
 export const closeUpTurnZ = z.object({
+  variant: z.enum(['rooftop', 'classroom']).default('rooftop'),
   expr: z.enum(['worried', 'neutral']).default('worried'),
   red: z.number().min(0).max(1).default(0.45),
   rimSwitch: z.number().min(0).max(1).default(0.55),
   scale: z.number().default(6.4),
+  glasses: z.boolean().default(false),
+  tag: z.string().default(''),
 });
 export type CloseUpTurnProps = z.infer<typeof closeUpTurnZ>;
 
-export const CloseUpTurn: React.FC<Arch & CloseUpTurnProps> = ({ t, len, expr, red, rimSwitch, scale }) => {
+export const CloseUpTurn: React.FC<Arch & CloseUpTurnProps> = ({ t, len, uid = 'cu', variant = 'rooftop', expr, red, rimSwitch, scale, glasses = false, tag = '' }) => {
+  // classroom: a different choreography entirely (rewind's solved-board close-up) — only `glasses`/`tag` apply.
+  if (variant === 'classroom') {
+    const sc = 4.3 * (1 + 0.05 * clamp(t / Math.max(len, 1)));
+    const glassesK = glasses ? clamp((t - 6) / 8) : 0;
+    const pose: Pose = { ...basePose, x: 1000, y: 640 - HEAD.y * sc, scale: sc, yaw: 0.22, look: 0.1, armL: { a: 14, b: -6 }, armR: { a: 14, b: -6 }, glasses: glassesK, headTilt: kf(t, [[0, 0], [18, 3]]), ...faceAt(t, glassesK > 0.5 ? [[0, 'happy'], [14, 'cool']] : [[0, 'happy'], [14, 'smug']]) };
+    return (
+      <g>
+        <g filter="url(#blur16)">
+          <g transform="translate(-590 -452) scale(2.2)">
+            <Classroom t={t + 326} solved={t >= 8} id={`ar-cu-${uid}`} />
+          </g>
+        </g>
+        <rect x={0} y={0} width={1920} height={1080} fill="#FFF6E9" opacity={0.12} />
+        <Hero look={LOOKS.pipHood} pose={pose} rimId="rimR" shadow={0} />
+        {glassesK > 0.5 ? <FocusRings x={1000} y={610} t={t - 6} r0={64} /> : null}
+        {glassesK >= 1 ? <Sparkle x={1190} y={430} t={t - 14} s={0.9} /> : null}
+        {tag ? (
+          <g transform="translate(1330 200) scale(1.35)">
+            <Tag x={0} y={0} t={t - 4} text={tag} mark="check" w={150} />
+          </g>
+        ) : null}
+      </g>
+    );
+  }
   const sc = scale * (1 + 0.04 * clamp(t / len));
   const head = { x: 960, y: 720 };
   const redK = red * clamp(t / len);
@@ -545,17 +619,51 @@ export const CloseUpTurn: React.FC<Arch & CloseUpTurnProps> = ({ t, len, expr, r
 
 // ---------- schematicClaim (S12): the schematic poses the claim and shows the hole ----------
 export const schematicClaimZ = z.object({
+  variant: z.enum(['origin', 'formula']).default('origin'),
   title: z.string().default('LE SOLDE'),
   center: z.string().default('€'),
   value: z.string().default('1 000 000 €'),
   origin: z.string().default('ORIGINE'),
   footnote: z.string().default('AUCUN SALAIRE · AUCUNE VENTE · RIEN'),
+  formula: z.string().default('E = mc²'),
+  chip: z.string().default('1 COOKIE · 30 G'),
+  countTo: z.number().default(2.7e15),
+  unit: z.string().default("JOULES D'ÉNERGIE"),
 });
 export type SchematicClaimProps = z.infer<typeof schematicClaimZ>;
 
-export const SchematicClaim: React.FC<Arch & SchematicClaimProps> = ({ t, len, title, center, value, origin, footnote }) => (
-  <g transform={`translate(960 540) scale(${kf(t, [[0, 1], [len, 1.05]])}) translate(-960 -540)`}>
-    <Schematic t={t} id="ar-sch" />
+const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+const sup = (n: number) =>
+  String(n)
+    .split('')
+    .map((d) => SUP[+d] ?? d)
+    .join('');
+
+export const SchematicClaim: React.FC<Arch & SchematicClaimProps> = ({ t, len, uid = 'sc', variant = 'origin', title, center, value, origin, footnote, formula, chip, countTo, unit }) => {
+  if (variant === 'formula') {
+    const ex = Math.floor(Math.log10(Math.abs(countTo) || 1));
+    const fmt =
+      Math.abs(countTo) >= 1e6
+        ? (v: number) => `${(v / Math.pow(10, ex)).toFixed(1).replace('.', ',')} × 10${sup(ex)}`
+        : (v: number) => Math.round(v).toLocaleString('fr-FR');
+    return (
+      <g transform={`translate(960 540) scale(${kf(t, [[0, 1], [len, 1.05]])}) translate(-960 -540)`}>
+        <Schematic t={t} id={`ar-schf-${uid}`} />
+        <PasteIn x={1440} y={280} t={t} ring={70}>
+          <CookieTop x={0} y={0} r={54} />
+        </PasteIn>
+        <SchLabel x={1440} y={392} t={t - 6} text={chip} size={28} color={SCH.dim} />
+        <Arrow x0={1320} y0={300} x1={1140} y1={380} t={t - 8} color={SCH.dim} />
+        <SchLabel x={760} y={430} t={t - 10} text={formula} size={104} color={GOLD_L} />
+        <DrawOn d="M 540 540 L 980 540" t={t - 16} dur={8} color={SCH.dim} width={3} />
+        <CountUp x={760} y={668} t={t - 18} to={countTo} dur={24} size={62} color={SCH.live} format={fmt} />
+        <SchLabel x={760} y={790} t={t - 38} text={unit} size={34} color={SCH.dim} />
+      </g>
+    );
+  }
+  return (
+    <g transform={`translate(960 540) scale(${kf(t, [[0, 1], [len, 1.05]])}) translate(-960 -540)`}>
+      <Schematic t={t} id={`ar-sch-${uid}`} />
     <SchLabel x={430} y={205} t={t} text={title} size={40} color={SCH.dim} />
     <g transform="translate(430 420)">
       <circle r={130} fill="none" stroke={SCH.line} strokeWidth={6} opacity={easeOut(clamp(t / 8))} />
@@ -573,10 +681,11 @@ export const SchematicClaim: React.FC<Arch & SchematicClaimProps> = ({ t, len, t
         {'?'}
       </text>
     ) : null}
-    <DrawOn d="M 1000 700 L 1480 700" t={t - 29} dur={8} color={SCH.dim} width={3} />
-    <SchLabel x={1240} y={772} t={t - 33} text={footnote} size={38} color={SCH.dim} />
-  </g>
-);
+      <DrawOn d="M 1000 700 L 1480 700" t={t - 29} dur={8} color={SCH.dim} width={3} />
+      <SchLabel x={1240} y={772} t={t - 33} text={footnote} size={38} color={SCH.dim} />
+    </g>
+  );
+};
 
 // ---------- schematicBar (S13): the schematic bar that shrinks, the annotated result ----------
 export const schematicBarZ = z.object({
