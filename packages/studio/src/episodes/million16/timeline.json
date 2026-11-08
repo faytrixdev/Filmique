@@ -1,0 +1,320 @@
+{
+ "slug": "million16",
+ "title": "ET SI TU DEVENAIS MILLIONNAIRE À 16 ANS ?",
+ "fps": 30,
+ "total": 711,
+ "segments": [
+  {
+   "shot": "S1",
+   "a": 0,
+   "b": 30,
+   "t0": 0,
+   "t1": 30,
+   "line": "Seize ans. Ton"
+  },
+  {
+   "shot": "S2",
+   "a": 30,
+   "b": 86,
+   "t0": 0,
+   "t1": 56,
+   "line": "téléphone affiche un million.",
+   "look": "million"
+  },
+  {
+   "shot": "S3",
+   "a": 86,
+   "b": 116,
+   "t0": 0,
+   "t1": 30,
+   "line": "Million. La"
+  },
+  {
+   "shot": "S4",
+   "a": 116,
+   "b": 142,
+   "t0": 0,
+   "t1": 26,
+   "line": "console."
+  },
+  {
+   "shot": "S5",
+   "a": 142,
+   "b": 171,
+   "t0": 0,
+   "t1": 29,
+   "line": "Million. La",
+   "look": "million"
+  },
+  {
+   "shot": "S6",
+   "a": 171,
+   "b": 209,
+   "t0": 0,
+   "t1": 38,
+   "line": "cantine pour tous."
+  },
+  {
+   "shot": "S7",
+   "a": 209,
+   "b": 238,
+   "t0": 0,
+   "t1": 29,
+   "line": "Million. Tu",
+   "look": "million"
+  },
+  {
+   "shot": "S8",
+   "a": 238,
+   "b": 276,
+   "t0": 0,
+   "t1": 38,
+   "line": "dépenses tout. Il"
+  },
+  {
+   "shot": "S9",
+   "a": 276,
+   "b": 325,
+   "t0": 0,
+   "t1": 49,
+   "line": "revient: un million.",
+   "look": "million"
+  },
+  {
+   "shot": "S10",
+   "a": 325,
+   "b": 350,
+   "t0": 0,
+   "t1": 25,
+   "line": "Froid. Et"
+  },
+  {
+   "shot": "S11",
+   "a": 350,
+   "b": 419,
+   "t0": 0,
+   "t1": 69,
+   "line": "si tu devenais millionnaire à seize ans? Ton"
+  },
+  {
+   "shot": "S12",
+   "a": 419,
+   "b": 470,
+   "t0": 0,
+   "t1": 51,
+   "line": "million n'a pas d'origine. À"
+  },
+  {
+   "shot": "S13",
+   "a": 470,
+   "b": 536,
+   "t0": 0,
+   "t1": 66,
+   "line": "deux pour cent d'inflation par an, il perd un"
+  },
+  {
+   "shot": "S14",
+   "a": 536,
+   "b": 620,
+   "t0": 0,
+   "t1": 84,
+   "line": "tiers de sa valeur en vingt ans. C'est vrai. Et"
+  },
+  {
+   "shot": "S15",
+   "a": 620,
+   "b": 711,
+   "t0": 0,
+   "t1": 91,
+   "line": "la banque: d'où il vient, ton million?"
+  }
+ ],
+ "shots": [
+  {
+   "id": "S1",
+   "size": "wide",
+   "key": 18,
+   "len": 30,
+   "first": 0,
+   "line": "Seize ans. Ton",
+   "note": "anniversaire : le gâteau à 16 bougies allumées près de la fenêtre au soleil du matin, Pip derrière l'îlot, le téléphone qui vibre dessus"
+  },
+  {
+   "id": "S2",
+   "size": "macro insert, haute angle",
+   "key": 14,
+   "len": 56,
+   "first": 30,
+   "line": "téléphone affiche un million.",
+   "note": "l'écran du téléphone dans une main : le solde saute à 1 000 000 €"
+  },
+  {
+   "id": "S3",
+   "size": "medium",
+   "key": 20,
+   "len": 30,
+   "first": 86,
+   "line": "Million. La",
+   "note": "Pip hurle de joie, bras en l'air, les flammes des bougies tirent à gauche"
+  },
+  {
+   "id": "S4",
+   "size": "medium",
+   "key": 20,
+   "len": 26,
+   "first": 116,
+   "line": "console.",
+   "note": "la console dans son emballage posée sur le bureau, Pip triomphe, étiquette PAYÉ qui se dessine"
+  },
+  {
+   "id": "S5",
+   "size": "insert top-down",
+   "key": 22,
+   "len": 29,
+   "first": 142,
+   "line": "Million. La",
+   "note": "des tas de pièces d'or apparaissent sur le bureau autour de la console"
+  },
+  {
+   "id": "S6",
+   "size": "wide",
+   "key": 26,
+   "len": 38,
+   "first": 171,
+   "line": "cantine pour tous.",
+   "note": "des pièces tombent du plafond sur les bureaux, les gamins se lèvent, la prof le bec en biais"
+  },
+  {
+   "id": "S7",
+   "size": "macro insert",
+   "key": 18,
+   "len": 29,
+   "first": 209,
+   "line": "Million. Tu",
+   "note": "les pièces s'empilent devant une gamine rayieuse, l'ombre de Mo au premier plan"
+  },
+  {
+   "id": "S8",
+   "size": "macro insert, top-down",
+   "key": 22,
+   "len": 38,
+   "first": 238,
+   "line": "dépenses tout. Il",
+   "note": "l'écran du téléphone roule vite vers le bas : les dépenses passent, le solde tombe à 12 €"
+  },
+  {
+   "id": "S9",
+   "size": "macro insert, très close",
+   "key": 12,
+   "len": 49,
+   "first": 276,
+   "line": "revient: un million.",
+   "note": "l'écran : le solde se réécrit tout seul de 12 € à 1 000 000 €, anneau d'or"
+  },
+  {
+   "id": "S10",
+   "size": "medium",
+   "key": 16,
+   "len": 25,
+   "first": 325,
+   "line": "Froid. Et",
+   "note": "Pip fixe son téléphone, figé, une bougie fume devant lui : quelque chose ne colle pas"
+  },
+  {
+   "id": "S11",
+   "size": "title, wide",
+   "key": 52,
+   "len": 69,
+   "first": 350,
+   "line": "si tu devenais millionnaire à seize ans? Ton",
+   "note": "la prémisse sur la ville au crépuscule ; Pip sur le toit, téléphone en main, écran lumineux"
+  },
+  {
+   "id": "S12",
+   "size": "schematic",
+   "key": 60,
+   "len": 51,
+   "first": 419,
+   "line": "million n'a pas d'origine. À",
+   "note": "1 000 000 € au centre, flèche vers ORIGINE : '?', AUCUN SALAIRE · AUCUNE VENTE · RIEN"
+  },
+  {
+   "id": "S13",
+   "size": "schematic",
+   "key": 72,
+   "len": 66,
+   "first": 470,
+   "line": "deux pour cent d'inflation par an, il perd un",
+   "note": "barre POUVOIR D'ACHAT qui descend de 100 % à 67 %, −33 % EN 20 ANS, 2 % PAR AN"
+  },
+  {
+   "id": "S14",
+   "size": "close-up",
+   "key": 14,
+   "len": 84,
+   "first": 536,
+   "line": "tiers de sa valeur en vingt ans. C'est vrai. Et",
+   "note": "Pip, inquiet ; la lumière commence à rougir"
+  },
+  {
+   "id": "S15",
+   "size": "wide, low angle",
+   "key": 44,
+   "len": 91,
+   "first": 620,
+   "line": "la banque: d'où il vient, ton million?",
+   "note": "le costume marche vers lui sur le toit, ciel rouge ; puce SOLDE 1 000 000 € · ORIGINE ?"
+  }
+ ],
+ "fx": [
+  {
+   "kind": "flash",
+   "color": "#FFF3DC",
+   "o": 0.5,
+   "f": 58
+  },
+  {
+   "kind": "flash",
+   "color": "#FFE7A0",
+   "o": 0.35,
+   "f": 156
+  },
+  {
+   "kind": "flash",
+   "color": "#FFE7A0",
+   "o": 0.3,
+   "f": 219
+  },
+  {
+   "kind": "flash",
+   "color": "#FFE7A0",
+   "o": 0.45,
+   "f": 286
+  },
+  {
+   "kind": "flash",
+   "color": "#FFF3DC",
+   "f": 350
+  },
+  {
+   "kind": "flash",
+   "color": "#FF3344",
+   "o": 0.3,
+   "f": 620
+  },
+  {
+   "kind": "shake",
+   "len": 10,
+   "amp": 10,
+   "f": 620
+  }
+ ],
+ "audio": {
+  "voiceVol": 0.8,
+  "sfxVol": 0.415,
+  "musicVol": 0.1225,
+  "voice": "million16/voice.wav",
+  "sfx": "million16/sfx.wav",
+  "music": "million16/music.wav"
+ }
+}
