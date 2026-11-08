@@ -1,6 +1,6 @@
 import React from 'react';
 import { AbsoluteFill } from 'remotion';
-import { Hero, basePose, Pose, LOOKS, CastName, KitDefs, SetDefs, Study, FONT } from './engine';
+import { Hero, basePose, Pose, LOOKS, CastName, KitDefs, SetDefs, Study, FONT } from '@what-if/engine';
 
 // The cast sheet: every costume on the one rig, front and three-quarter, over a soft set so contrast is judged in
 // place, plus a row of acting poses. Render it after adding or changing a look:

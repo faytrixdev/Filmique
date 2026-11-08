@@ -1,5 +1,5 @@
 import React from 'react';
-import { defineEpisode, Timeline, LookDef, TapeLines, HudChip, Dial, FONT } from '../../engine';
+import { defineEpisode, Timeline, LookDef, TapeLines, HudChip, Dial, FONT } from '@what-if/engine';
 import timeline from './timeline.json';
 import { Sh1, Sh2, Sh3, Sh4, Sh5, Sh6, Sh7, Sh8, Sh9, Sh10, Sh11, Sh12 } from './shots';
 

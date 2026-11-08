@@ -4,7 +4,7 @@ import {
   Hero, Pose, basePose, poseAt, faceAt, kf, clamp, easeOut, easeIn, rnd, settle, camT, LOOKS, LEG_LEN, HEAD, joints, toWorld, reachAngle,
   Kitchen, KitchenIsland, KITCHEN, islandTop, stand, Tabletop, Study, Desk, Stairwell, Rooftop, Schematic, SCH, Arrow, SchLabel, CountUp, PlantIcon,
   Cookie, CookieTop, CookieStack, Plate, PlateTop, Paper, PaperStack, Cat, Foreground, Marquee, PasteIn, Sparkle, TitleCard, Dial, Glow, ShotProps,
-} from '../../engine';
+} from '@what-if/engine';
 
 // "What if you could copy and paste anything?" Fifteen shots on four sets (kitchen, study, stairwell, rooftop) and
 // the schematic. The power: a selection box draws round the thing (COPY), then the copy pops in with a cyan ring

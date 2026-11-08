@@ -1,6 +1,7 @@
 import React from 'react';
 import { Composition } from 'remotion';
-import './engine/fonts';
+import './brand';
+import '@what-if/engine/src/fonts';
 import { STUDIO } from './studio.config';
 import { EPISODES } from './episodes';
 import { CastSheet } from './CastSheet';

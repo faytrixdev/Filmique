@@ -3,7 +3,7 @@ import {
   Hero, Cat, Mug, C, Pose, basePose, poseAt, kf, clamp, lerp, easeOut, easeIn, backOut, joints, toWorld, reachAngle, LEG_LEN, faceAt, LOOKS, HEAD,
   Foreground, camT, Sparkle, Tag, FocusRings, DizzyStars, TitleCard, walkPose, stepTop, hipGround,
   Study, Desk, Stairwell, Banister, Classroom, SchoolDesk, Rooftop, Kid, S3, Glow, rnd, ShotProps,
-} from '../../engine';
+} from '@what-if/engine';
 
 /** Pip in look B, the dark hoodie (the cast sheet's options A, B, C are LOOKS.pip, LOOKS.pipHood, LOOKS.pipInk). */
 const PIP = LOOKS.pipHood;

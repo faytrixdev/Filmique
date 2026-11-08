@@ -6,7 +6,7 @@ import {
   Schematic, SCH, Arrow, SchLabel, DrawOn,
   OpenBook, Mug, Cat,
   Sparkle, TitleCard, Tag, ShotProps, FONT,
-} from '../../engine';
+} from '@what-if/engine';
 
 // « Et si tu devenais millionnaire à 16 ans ? » — the balance refills itself to 1 000 000 € no matter what
 // is spent. Gold pool of light, a bank UI on the phone, one balance that never drops.
