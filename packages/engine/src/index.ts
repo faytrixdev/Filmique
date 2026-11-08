@@ -9,6 +9,7 @@ export * from './furnish';
 export * from './ui';
 export * from './fonts';
 export * from './schema';
+export * from './providers';
 export * from './episode';
 export * from './archetypes';
 export * from './sets/study';
