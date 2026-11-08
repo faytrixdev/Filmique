@@ -1,0 +1,11 @@
+{
+  "name": "what-if",
+  "private": true,
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "typescript": "5.8.2"
+  }
+}
