@@ -1,0 +1,322 @@
+{
+ "id": "Million16",
+ "slug": "million16",
+ "topic": "Et si tu devenais millionnaire à 16 ans ?",
+ "title": [
+  "ET SI TU DEVENAIS",
+  "MILLIONNAIRE À 16 ANS ?"
+ ],
+ "accent": "MILLIONNAIRE",
+ "power": {
+  "word": "Million.",
+  "rule": "ton solde revient toujours à 1 000 000 €, quoi que tu dépenses",
+  "look": "une plaque d'or chaude et une puce avec le solde ; le chiffre du solde n'arrête jamais de revenir"
+ },
+ "script": [
+  {
+   "beat": "1 ouvert à froid, démo 1 (la découverte)",
+   "text": "Seize ans. Ton téléphone affiche un million. Million."
+  },
+  {
+   "beat": "1 ouvert à froid, démo 2 (petit et égoïste, puis pour les autres)",
+   "text": "La console. Million. La cantine pour tous. Million."
+  },
+  {
+   "beat": "1 ouvert à froid, démo 3 (l'inquiétant)",
+   "text": "Tu dépenses tout. Il revient : un million. Froid."
+  },
+  {
+   "beat": "2 la prémisse (carte-titre)",
+   "text": "Et si tu devenais millionnaire à seize ans ?"
+  },
+  {
+   "beat": "4 le retournement : le coût, un fait réel chiffré",
+   "text": "Ton million n'a pas d'origine. À deux pour cent d'inflation par an, il perd un tiers de sa valeur en vingt ans. C'est vrai."
+  },
+  {
+   "beat": "5-7 repliés en une question menaçante",
+   "text": "Et la banque : d'où il vient, ton million ?"
+  }
+ ],
+ "science": [
+  {
+   "claim": "À 2 % d'inflation par an, un million perd un tiers de sa valeur en vingt ans.",
+   "working": "Pouvoir d'achat après n années à 2 % : (1/1,02)^n. 0,98^20 = 0,6676, soit une perte de 33,2 %, environ un tiers. Contrôle par la règle des 72 : 72/2 = 36 ans pour perdre la moitié, cohérent avec −33 % en 20 ans (36 × log(2/3)/log(1/2) ≈ 21 : parfait).",
+   "source": "Cible d'inflation de la BCE : 2 % (depuis 2021) ; composition géométrique (1+0,02)^20 = 1,4859"
+  },
+  {
+   "claim": "Une banque doit signaler une somme sans origine connue — un million tombé du ciel est suspecte par définition.",
+   "working": "En France, les banques ont une obligation de déclaration spontanée à Tracfin des opérations dont l'origine n'est pas justifiée (art. L.561-15 du code monétaire et financier, issu des directives UE anti-blanchiment 2015/849). Un virement d'un million sans salaire, vente ou héritage derrière est exactement le cas visé.",
+   "source": "Code monétaire et financier, art. L.561-15 ; Tracfin (ministère de l'Économie)"
+  }
+ ],
+ "cast": [
+  "pipHood",
+  "mo",
+  "suit"
+ ],
+ "shots": [
+  {
+   "id": "S1",
+   "size": "wide",
+   "set": "kitchen",
+   "key": 18,
+   "note": "anniversaire : le gâteau à 16 bougies allumées près de la fenêtre au soleil du matin, Pip derrière l'îlot, le téléphone qui vibre dessus"
+  },
+  {
+   "id": "S2",
+   "size": "macro insert, haute angle",
+   "set": "kitchen (plan de travail)",
+   "key": 14,
+   "note": "l'écran du téléphone dans une main : le solde saute à 1 000 000 €"
+  },
+  {
+   "id": "S3",
+   "size": "medium",
+   "set": "kitchen",
+   "key": 20,
+   "note": "Pip hurle de joie, bras en l'air, les flammes des bougies tirent à gauche"
+  },
+  {
+   "id": "S4",
+   "size": "medium",
+   "set": "study",
+   "key": 20,
+   "note": "la console dans son emballage posée sur le bureau, Pip triomphe, étiquette PAYÉ qui se dessine"
+  },
+  {
+   "id": "S5",
+   "size": "insert top-down",
+   "set": "study (bureau)",
+   "key": 22,
+   "note": "des tas de pièces d'or apparaissent sur le bureau autour de la console"
+  },
+  {
+   "id": "S6",
+   "size": "wide",
+   "set": "classroom",
+   "key": 26,
+   "note": "des pièces tombent du plafond sur les bureaux, les gamins se lèvent, la prof le bec en biais"
+  },
+  {
+   "id": "S7",
+   "size": "macro insert",
+   "set": "classroom (bureau)",
+   "key": 18,
+   "note": "les pièces s'empilent devant une gamine rayieuse, l'ombre de Mo au premier plan"
+  },
+  {
+   "id": "S8",
+   "size": "macro insert, top-down",
+   "set": "kitchen (plan de travail)",
+   "key": 22,
+   "note": "l'écran du téléphone roule vite vers le bas : les dépenses passent, le solde tombe à 12 €"
+  },
+  {
+   "id": "S9",
+   "size": "macro insert, très close",
+   "set": "kitchen (plan de travail)",
+   "key": 12,
+   "note": "l'écran : le solde se réécrit tout seul de 12 € à 1 000 000 €, anneau d'or"
+  },
+  {
+   "id": "S10",
+   "size": "medium",
+   "set": "kitchen",
+   "key": 16,
+   "note": "Pip fixe son téléphone, figé, une bougie fume devant lui : quelque chose ne colle pas"
+  },
+  {
+   "id": "S11",
+   "size": "title, wide",
+   "set": "rooftop",
+   "key": 52,
+   "note": "la prémisse sur la ville au crépuscule ; Pip sur le toit, téléphone en main, écran lumineux"
+  },
+  {
+   "id": "S12",
+   "size": "schematic",
+   "set": "schematic",
+   "key": 60,
+   "note": "1 000 000 € au centre, flèche vers ORIGINE : '?', AUCUN SALAIRE · AUCUNE VENTE · RIEN"
+  },
+  {
+   "id": "S13",
+   "size": "schematic",
+   "set": "schematic",
+   "key": 72,
+   "note": "barre POUVOIR D'ACHAT qui descend de 100 % à 67 %, −33 % EN 20 ANS, 2 % PAR AN"
+  },
+  {
+   "id": "S14",
+   "size": "close-up",
+   "set": "rooftop",
+   "key": 14,
+   "note": "Pip, inquiet ; la lumière commence à rougir"
+  },
+  {
+   "id": "S15",
+   "size": "wide, low angle",
+   "set": "rooftop",
+   "key": 44,
+   "note": "le costume marche vers lui sur le toit, ciel rouge ; puce SOLDE 1 000 000 € · ORIGINE ?"
+  }
+ ],
+ "edit": [
+  {
+   "shot": "S1",
+   "at": "Seize"
+  },
+  {
+   "shot": "S2",
+   "at": "téléphone",
+   "look": "million"
+  },
+  {
+   "shot": "S3",
+   "at": "Million#2"
+  },
+  {
+   "shot": "S4",
+   "at": "console"
+  },
+  {
+   "shot": "S5",
+   "at": "Million#1",
+   "look": "million"
+  },
+  {
+   "shot": "S6",
+   "at": "cantine"
+  },
+  {
+   "shot": "S7",
+   "at": "Million#1",
+   "look": "million"
+  },
+  {
+   "shot": "S8",
+   "at": "dépenses"
+  },
+  {
+   "shot": "S9",
+   "at": "revient",
+   "look": "million"
+  },
+  {
+   "shot": "S10",
+   "at": "Froid"
+  },
+  {
+   "shot": "S11",
+   "at": "si"
+  },
+  {
+   "shot": "S12",
+   "at": "million#1"
+  },
+  {
+   "shot": "S13",
+   "at": "deux"
+  },
+  {
+   "shot": "S14",
+   "at": "tiers"
+  },
+  {
+   "shot": "S15",
+   "at": "banque"
+  }
+ ],
+ "tail": 1.2,
+ "sound": {
+  "clips": {
+   "buzz": ["a smartphone vibrating on a wooden kitchen countertop, two short buzz bursts, close", 1.0],
+   "chime": ["a bank app notification chime, bright positive two-tone ring", 0.8],
+   "coin": ["a small gold coin dropping clattering on a wooden desk, bright metal ring", 0.6],
+   "beep": ["a store card terminal double beep, transaction accepted", 0.7],
+   "yay": ["a young boy shouting one joyful whoop of excitement, cartoon, close", 0.8],
+   "steps": ["a firm confident dress shoe step on flat concrete, close, evening rooftop", 0.7],
+   "room_tone": ["quiet indoor room tone in the evening, faint distant city hum, no voices", 12.5],
+   "class_murmur": ["a quiet classroom murmur, kids whispering, chairs shuffling", 2.0],
+   "roof_wind": ["a gentle evening breeze on a city rooftop, distant traffic", 7.0],
+   "laugh": ["a small classroom of kids bursting out laughing", 1.6],
+   "sparkle": ["a short bright magical sparkle twinkle, cartoon", 0.8],
+   "title_boom": ["a cinematic whoosh rising into a deep boom impact", 1.6],
+   "drone_hit": ["a dark ominous low drone hit, deep cinematic horror sting", 2.6],
+   "buzzer": ["a game show wrong answer buzzer, short", 0.8],
+   "pop": ["a cartoon speech bubble pop, short and bright", 0.5],
+   "music": ["playful quirky cartoon background music, pizzicato strings, glockenspiel and soft bass, light and curious, 110 bpm, no vocals", 17.0]
+  },
+  "events": [
+   ["f:0", "room_tone", 0.12, "onset", "s:5.6"],
+   ["s:5.5", "class_murmur", 0.08, "onset", "s:7.9"],
+   ["s:0.8", "buzz", 0.2],
+   ["s:2.82", "chime", 0.3, "peak"],
+   ["s:2.82", "sparkle", 0.2, "peak"],
+   ["s:3.0", "yay", 0.3],
+   ["s:6.0", "laugh", 0.3],
+   ["s:7.1", "coin", 0.2],
+   ["s:8.2", "beep", 0.2],
+   ["s:8.5", "beep", 0.16],
+   ["s:8.8", "beep", 0.14],
+   ["s:9.55", "sparkle", 0.22, "peak"],
+   ["s:9.75", "chime", 0.3, "peak"],
+   ["s:10.9", "drone_hit", 0.3, "peak"],
+   ["s:11.67", "roof_wind", 0.14, "onset", "s:23.9"],
+   ["s:12.9", "title_boom", 0.35, "peak"],
+   ["s:14.7", "pop", 0.28],
+   ["s:17.0", "buzzer", 0.2]
+  ],
+  "repeats": [
+   {"at": "s:4.9", "clip": "coin", "n": 4, "every": 5, "gain": [0.1, 0.18], "pitch": [0.85, 1.2]},
+   {"at": "s:5.9", "clip": "coin", "n": 8, "every": 6, "gain": [0.06, 0.14], "pitch": [0.9, 1.25]},
+   {"at": "s:20.8", "clip": "steps", "n": 5, "every": 7, "gain": [0.1, 0.2], "pitch": [0.85, 1.1]}
+  ],
+  "music": {"clip": "music", "until": "s:13.9", "reverse_looks": ["million"]},
+  "levels": {"sfx_lu": 1.5, "music_lu": -9.5}
+ },
+ "fx": [
+  {
+   "at": "S2+28",
+   "kind": "flash",
+   "color": "#FFF3DC",
+   "o": 0.5
+  },
+  {
+   "at": "S5+14",
+   "kind": "flash",
+   "color": "#FFE7A0",
+   "o": 0.35
+  },
+  {
+   "at": "S7+10",
+   "kind": "flash",
+   "color": "#FFE7A0",
+   "o": 0.3
+  },
+  {
+   "at": "S9+10",
+   "kind": "flash",
+   "color": "#FFE7A0",
+   "o": 0.45
+  },
+  {
+   "at": "S11",
+   "kind": "flash",
+   "color": "#FFF3DC"
+  },
+  {
+   "at": "S15",
+   "kind": "flash",
+   "color": "#FF3344",
+   "o": 0.3
+  },
+  {
+   "at": "S15",
+   "kind": "shake",
+   "len": 10,
+   "amp": 10
+  }
+ ]
+}

@@ -8,6 +8,7 @@ export * from './room';
 export * from './furnish';
 export * from './ui';
 export * from './fonts';
+export * from './schema';
 export * from './episode';
 export * from './sets/study';
 export * from './sets/stairwell';
