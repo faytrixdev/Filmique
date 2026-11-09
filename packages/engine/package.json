@@ -10,7 +10,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "compose:mock": "tsx --env-file=.env scripts/compose-cli.ts"
   },
   "dependencies": {
     "@remotion/fonts": "4.0.530",
@@ -28,6 +29,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "remotion": "4.0.530",
+    "tsx": "^4.23.15",
     "typescript": "5.8.2",
     "vitest": "^3"
   }

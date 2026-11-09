@@ -1,0 +1,246 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`composeEpisode (whole pipeline, mocked) > keeps science forcasting from unlikely claims out (snapshot) 1`] = `
+{
+  "accent": "PAIN",
+  "cast": [
+    "pipHood",
+    "suit",
+  ],
+  "edit": [
+    {
+      "at": "Une",
+      "look": "million",
+      "shot": "S1",
+    },
+  ],
+  "fx": [
+    {
+      "at": "s:2.2",
+      "kind": "flash",
+    },
+  ],
+  "id": "Draft",
+  "power": {
+    "look": "des miches dorées qui glissent sur les immeubles",
+    "rule": "le pain pousse sur les toits après chaque orage",
+    "word": "Crue",
+  },
+  "science": [
+    {
+      "claim": "Un toit parisien couvre 60 mètres carrés.",
+      "source": "Atelier Parisien d’Urbanisme",
+      "working": "un immeuble haussmannien moyen, 20 m sur 3",
+    },
+  ],
+  "script": [
+    {
+      "beat": "hook",
+      "text": "Une averse éclate au-dessus de la ville.",
+    },
+    {
+      "beat": "premise",
+      "text": "Le pain pousse sur les toits depuis ce matin.",
+    },
+    {
+      "beat": "evidence",
+      "text": "L'INSEE suit la survie des boulangeries chaque automne.",
+    },
+    {
+      "beat": "evidence",
+      "text": "Un toit parisien couvre 60 mètres carrés.",
+    },
+    {
+      "beat": "twist",
+      "text": "Il faudrait 1 000 averses pour nourrir un immeuble.",
+    },
+    {
+      "beat": "question",
+      "text": "Mairie? elle taxe le pain?",
+    },
+  ],
+  "shots": [
+    {
+      "archetype": "titleReveal",
+      "archetypeProps": {
+        "accent": "PAIN",
+        "lines": [
+          "ET SI LE PAIN",
+          "NOUS OBSERVE?",
+        ],
+      },
+      "id": "S1",
+      "key": 60,
+      "note": "le titre",
+      "set": "kitchen",
+      "size": "title, wide",
+    },
+    {
+      "archetype": "wideRoom",
+      "archetypeProps": {
+        "mood": "curious",
+      },
+      "id": "S2",
+      "key": 40,
+      "note": "la ville se réveille",
+      "set": "kitchen",
+      "size": "wide",
+    },
+    {
+      "archetype": "closeUpTurn",
+      "archetypeProps": {},
+      "id": "S3",
+      "key": 45,
+      "note": "il comprend",
+      "set": "rooftop",
+      "size": "close-up",
+    },
+    {
+      "archetype": "schematicBar",
+      "archetypeProps": {},
+      "id": "S4",
+      "key": 50,
+      "note": "un chiffre",
+      "set": "schematic",
+      "size": "schematic",
+    },
+    {
+      "archetype": "arrivalWalk",
+      "archetypeProps": {
+        "cast": "suit",
+      },
+      "id": "S5",
+      "key": 40,
+      "note": "la foule",
+      "set": "rooftop",
+      "size": "wide, low angle",
+    },
+    {
+      "archetype": "pilesLand",
+      "archetypeProps": {},
+      "id": "S6",
+      "key": 36,
+      "note": "les miches atterrissent",
+      "set": "study",
+      "size": "insert top-down",
+    },
+  ],
+  "slug": "et-si-le-pain-tombait-du-cie",
+  "sound": {
+    "clips": {
+      "coin": [
+        "a small gold coin dropping clattering on a wooden desk, bright metal ring",
+        0.6,
+      ],
+      "counter_tick": [
+        "a fast mechanical counter ticking up rapidly, digits rolling over, getting faster",
+        1.6,
+      ],
+      "drone_hit": [
+        "a dark ominous low drone hit, deep cinematic horror sting",
+        2.6,
+      ],
+      "playful": [
+        "playful quirky cartoon background music, pizzicato strings, glockenspiel and soft bass, light and curious, 110 bpm, no vocals",
+        17,
+      ],
+      "room_tone": [
+        "quiet indoor room tone in the evening, faint distant city hum, no voices",
+        12.5,
+      ],
+      "sparkle": [
+        "a short bright magical sparkle twinkle, cartoon",
+        0.8,
+      ],
+      "steps": [
+        "a firm confident dress shoe step on flat concrete, close, evening rooftop",
+        0.7,
+      ],
+      "title_boom": [
+        "a cinematic whoosh rising into a deep boom impact",
+        1.6,
+      ],
+    },
+    "events": [
+      [
+        "f:0",
+        "room_tone",
+        0.12,
+        "onset",
+        "f:166",
+      ],
+      [
+        "f:10",
+        "title_boom",
+        0.35,
+        "peak",
+      ],
+      [
+        "f:122",
+        "drone_hit",
+        0.2,
+      ],
+      [
+        "f:151",
+        "counter_tick",
+        0.15,
+      ],
+      [
+        "f:66",
+        "sparkle",
+        0.2,
+      ],
+    ],
+    "levels": {
+      "music_lu": -9.5,
+      "sfx_lu": 1.5,
+    },
+    "music": {
+      "clip": "playful",
+      "reverse_looks": [
+        "million",
+      ],
+      "until": "f:151",
+    },
+    "repeats": [
+      {
+        "at": "f:195",
+        "clip": "steps",
+        "every": 7,
+        "gain": [
+          0.1,
+          0.2,
+        ],
+        "n": 5,
+        "note": "S5",
+        "pitch": [
+          0.85,
+          1.1,
+        ],
+      },
+      {
+        "at": "f:239",
+        "clip": "coin",
+        "every": 5,
+        "gain": [
+          0.06,
+          0.16,
+        ],
+        "n": 6,
+        "note": "S6",
+        "pitch": [
+          0.85,
+          1.2,
+        ],
+      },
+    ],
+  },
+  "tail": 1,
+  "title": [
+    "ET SI LE PAIN",
+    "NOUS OBSERVE?",
+  ],
+  "topic": "Et si le pain tombait du ciel ?",
+  "voice": undefined,
+}
+`;
