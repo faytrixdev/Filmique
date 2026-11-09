@@ -79,10 +79,11 @@ describe('choreography variants', () => {
 });
 
 describe('buildShotMap', () => {
-  it('maps million16 shots annotated with archetypes', () => {
+  it('maps only the shots annotated with archetypes', () => {
+    const stripped = million.shots.map(({ archetype: _a, archetypeProps: _p, ...rest }) => rest);
     const annotated = {
       ...million,
-      shots: million.shots.map((s, i) =>
+      shots: stripped.map((s, i) =>
         i === 0
           ? { ...s, archetype: 'wideRoom', archetypeProps: { mood: 'curious', phone: '8,50 €', glow: 0.15, buzz: true, cake: true } }
           : i === 11
