@@ -18,6 +18,27 @@ import {
   schematicBarZ, SchematicBar,
   arrivalWalkZ, ArrivalWalk,
 } from './components';
+import {
+  edgeFallZ, EdgeFall,
+  smashFloorZ, SmashFloor,
+  catchSaveZ, CatchSave,
+  tripStumbleZ, TripStumble,
+  landedDizzyZ, LandedDizzy,
+  stepOverZ, StepOver,
+  wrongAnswerZ, WrongAnswer,
+} from './actions';
+import {
+  selectCopyZ, SelectCopy,
+  pastePopZ, PastePop,
+  copySwarmZ, CopySwarm,
+  pasteStackZ, PasteStack,
+  selectCharacterZ, SelectCharacter,
+  copyCharacterZ, CopyCharacter,
+  uneasyCopiesZ, UneasyCopies,
+  bitePauseZ, BitePause,
+  ghostFlickerZ, GhostFlicker,
+  plantGridZ, PlantGrid,
+} from './copies';
 
 export type Archetype<P = unknown> = {
   Component: React.FC<ShotProps & { uid?: string } & P>;
@@ -39,6 +60,23 @@ export const ARCHETYPES: Record<string, Archetype<any>> = {
   schematicClaim: { Component: SchematicClaim, PropsZ: schematicClaimZ },
   schematicBar: { Component: SchematicBar, PropsZ: schematicBarZ },
   arrivalWalk: { Component: ArrivalWalk, PropsZ: arrivalWalkZ },
+  edgeFall: { Component: EdgeFall, PropsZ: edgeFallZ },
+  smashFloor: { Component: SmashFloor, PropsZ: smashFloorZ },
+  catchSave: { Component: CatchSave, PropsZ: catchSaveZ },
+  tripStumble: { Component: TripStumble, PropsZ: tripStumbleZ },
+  landedDizzy: { Component: LandedDizzy, PropsZ: landedDizzyZ },
+  stepOver: { Component: StepOver, PropsZ: stepOverZ },
+  wrongAnswer: { Component: WrongAnswer, PropsZ: wrongAnswerZ },
+  selectCopy: { Component: SelectCopy, PropsZ: selectCopyZ },
+  pastePop: { Component: PastePop, PropsZ: pastePopZ },
+  copySwarm: { Component: CopySwarm, PropsZ: copySwarmZ },
+  pasteStack: { Component: PasteStack, PropsZ: pasteStackZ },
+  selectCharacter: { Component: SelectCharacter, PropsZ: selectCharacterZ },
+  copyCharacter: { Component: CopyCharacter, PropsZ: copyCharacterZ },
+  uneasyCopies: { Component: UneasyCopies, PropsZ: uneasyCopiesZ },
+  bitePause: { Component: BitePause, PropsZ: bitePauseZ },
+  ghostFlicker: { Component: GhostFlicker, PropsZ: ghostFlickerZ },
+  plantGrid: { Component: PlantGrid, PropsZ: plantGridZ },
 };
 
 export type CastTypeMap = Record<string, string>;

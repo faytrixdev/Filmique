@@ -15,9 +15,15 @@ const million = EpisodeJsonZ.parse(
 const MIN_PROPS: Record<string, Record<string, unknown>> = { titleReveal: { lines: ['ET SI TU', 'DEVENAIS RICHE ?'] } };
 
 describe('archetype registry', () => {
-  it('has the 14 catalogue archetypes', () => {
+  it('has the 31 catalogue archetypes', () => {
     expect(Object.keys(ARCHETYPES).sort()).toEqual(
-      ['arrivalWalk', 'cityTurn', 'closeUpTurn', 'lowAngleSky', 'objectRain', 'pilesLand', 'phoneDrain', 'phoneJump', 'phoneRestore', 'schematicBar', 'schematicClaim', 'tagObject', 'titleReveal', 'wideRoom'].sort(),
+      [
+        'arrivalWalk', 'bitePause', 'catchSave', 'cityTurn', 'closeUpTurn', 'copyCharacter', 'copySwarm', 'edgeFall',
+        'ghostFlicker', 'landedDizzy', 'lowAngleSky', 'objectRain', 'pastePop', 'pasteStack', 'pilesLand',
+        'phoneDrain', 'phoneJump', 'phoneRestore', 'plantGrid', 'selectCharacter', 'selectCopy', 'schematicBar',
+        'schematicClaim', 'smashFloor', 'stepOver', 'tagObject', 'titleReveal', 'tripStumble', 'uneasyCopies',
+        'wideRoom', 'wrongAnswer',
+      ].sort(),
     );
   });
 
