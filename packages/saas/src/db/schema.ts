@@ -9,7 +9,15 @@ export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
   role: text('role').notNull().default('member'), // member | admin
+  whopUserId: text('whop_user_id'), // set by the Whop webhook on first activation
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Whop webhook ids already processed — grant idempotency across redeliveries. */
+export const webhooks = pgTable('webhooks', {
+  id: text('id').primaryKey(), // the outgoing webhook id (x-whop-webhook-id)
+  event: text('event').notNull(),
+  processedAt: timestamp('processed_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const magicLinks = pgTable(
