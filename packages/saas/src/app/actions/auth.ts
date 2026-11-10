@@ -3,7 +3,8 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { authSecret, consumeMagicLink, requestMagicLink, SESSION_COOKIE, sessionCookie } from '@/lib/auth';
-import { drizzleMagicRepo, getDb } from '@/db/auth-repo';
+import { drizzleMagicRepo } from '@/db/auth-repo';
+import { getDb } from '@/db';
 
 const repo = () => drizzleMagicRepo(getDb());
 

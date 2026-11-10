@@ -4,12 +4,6 @@ import { eq } from 'drizzle-orm';
 import { magicLinks, users } from './schema';
 import type { MagicRepo, StoredLink } from '../lib/auth';
 
-/** Lazily-built repo over the Neon database (drizzle + http driver). */
-export const getDb = (url = process.env.DATABASE_URL): NeonHttpDatabase => {
-  if (!url) throw new Error('Missing DATABASE_URL (Neon)');
-  return drizzle(neon(url));
-};
-
 export const drizzleMagicRepo = (db: NeonHttpDatabase): MagicRepo => ({
   async save(link) {
     await db.insert(magicLinks).values({ email: link.email, token: link.tokenHash, expiresAt: new Date(link.expiresAt) });

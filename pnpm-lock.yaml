@@ -72,6 +72,9 @@ importers:
       '@remotion/player':
         specifier: ^4.0.542
         version: 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@what-if/engine':
+        specifier: workspace:*
+        version: link:../engine
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@neondatabase/serverless@1.2.0)
