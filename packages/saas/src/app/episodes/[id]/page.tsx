@@ -5,20 +5,25 @@ import { connection } from 'next/server';
 import { authSecret, readSession, SESSION_COOKIE } from '@/lib/auth';
 import { getDb } from '@/db';
 import { drizzleEpisodeRepo } from '@/db/episodes-repo';
+import { drizzleJobsRepo } from '@/db/jobs-repo';
 import { getEpisode } from '@/lib/episodes';
 import EditorClient from './editor-client';
 import type { EpisodeJson } from '@what-if/engine';
+import type { TtsResult } from '@/lib/api-tts';
 
 async function Editor({ params }: { params: Promise<{ id: string }> }) {
   await connection(); // session + DB + params live only at request time
   const session = readSession((await cookies()).get(SESSION_COOKIE)?.value, authSecret(), Date.now());
   if (!session) redirect('/login');
-  const repo = drizzleEpisodeRepo(getDb());
-  const userId = await repo.userIdByEmail(session.email);
+  const db = getDb();
+  const episodeRepo = drizzleEpisodeRepo(db);
+  const userId = await episodeRepo.userIdByEmail(session.email);
   if (!userId) redirect('/login');
-  const row = await getEpisode(repo, userId, (await params).id);
+  const id = (await params).id;
+  const row = await getEpisode(episodeRepo, userId, id);
   if (!row) notFound();
-  return <EditorClient episode={row.episode as EpisodeJson} />;
+  const tts = await drizzleJobsRepo(db).latestDone(id);
+  return <EditorClient episodeId={row.id} episode={row.episode as EpisodeJson} tts={tts} />;
 }
 
 // /episodes/[id] — the editor. Session-guarded, ownership-guarded.
