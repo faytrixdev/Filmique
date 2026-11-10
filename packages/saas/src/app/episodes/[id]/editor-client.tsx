@@ -2,23 +2,13 @@
 
 import React, { useMemo, useRef, useState } from 'react';
 import { Player, type PlayerRef } from '@remotion/player';
-import { buildShotMap, composeTimeline, Episode, MUSIC, type EpisodeJson } from '@what-if/engine';
+import { composeTimeline, MUSIC, type EpisodeJson } from '@what-if/engine';
 import { synthWords } from '@/lib/demo-words';
-import { STUDIO_LOOKS } from '@/lib/looks';
+import { SaaSEpisode, fpsSaaS } from '@/components/saas-episode';
 import type { TtsResult } from '@/lib/api-tts';
 import { clampKey, moveShot, type Shot } from '@/lib/editor-helpers';
 
-const fps = 30;
-
-// The whole episode as one Remotion component, over its own data. Real TTS words
-// when a voice job exists, the deterministic demo cadence otherwise.
-export const SaaSEpisode: React.FC<{ episode: EpisodeJson; tts: TtsResult | null }> = ({ episode, tts }) => {
-  const words = useMemo(() => tts?.words ?? synthWords(episode.script), [tts, episode.script]);
-  const audio = useMemo(() => (tts ? { voice: tts.audioUrl, voiceVol: 1 } : {}), [tts]);
-  const timeline = useMemo(() => composeTimeline(episode, words, { fps, audio }), [episode, words, audio]);
-  const shots = useMemo(() => buildShotMap(episode), [episode]);
-  return <Episode timeline={timeline} shots={shots} looks={STUDIO_LOOKS} />;
-};
+const fps = fpsSaaS;
 
 export default function EditorClient({ episodeId, episode, tts: initialTts }: { episodeId: string; episode: EpisodeJson; tts: TtsResult | null }) {
   const [tab, setTab] = useState<'script' | 'shots' | 'audio'>('script');
