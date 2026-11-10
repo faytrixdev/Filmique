@@ -9,7 +9,7 @@ export const drizzleExportRepo = (db: NeonHttpDatabase): ExportRepo & { latestAu
   const rowOf = (j: typeof jobs.$inferSelect): ExportRow => ({
     id: j.id,
     episodeId: j.episodeId,
-    userId: '',
+    userId: (j.spec as { userId?: string } | null)?.userId ?? '',
     status: j.status as ExportRow['status'],
     costEurMicros: j.costEurMicros ?? 0,
     videoUrl: (j.result as { videoUrl?: string } | null)?.videoUrl ?? null,

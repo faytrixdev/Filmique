@@ -32,9 +32,10 @@ export interface RenderAdapter {
   startRender(input: { jobId: string; episode: EpisodeJson; audioUrl?: string }): Promise<void>;
 }
 
-/** Task 15 turns this into the real credit_ledger; today the gate is injectable. */
+/** Task 16 keeps the grants append-only; the gate debits, and refunds on failure. */
 export interface CreditGate {
   charge(userId: string, costEurMicros: number, jobId: string): Promise<boolean>;
+  refund?(userId: string, costEurMicros: number, jobId: string): Promise<void>;
 }
 
 export type ExportCtx = {
@@ -68,6 +69,7 @@ export const postExport = async (ctx: ExportCtx, episodeId: string): Promise<Res
     await ctx.render.startRender({ jobId: job.id, episode: row.episode as EpisodeJson, audioUrl });
     return json({ jobId: job.id, status: 'queued', costEurMicros: RENDER_COST_MICROS }, 202);
   } catch (e) {
+    await ctx.gate.refund?.(ctx.userId, RENDER_COST_MICROS, job.id);
     await ctx.exports.setFailed(job.id, String(e instanceof Error ? e.message : e), Date.now());
     return json({ error: 'render_failed' }, 502);
   }
@@ -101,5 +103,6 @@ export const postExportCallback = async (ctx: ExportCtx, payload: unknown, isAut
     return updated ? json({ status: 'rendered', videoUrl: updated.videoUrl }) : json({ error: 'unknown_job' }, 404);
   }
   const updated = await ctx.exports.setFailed(p.jobId, p.error ?? 'render failed', Date.now());
+  if (updated) await ctx.gate.refund?.(updated.userId, updated.costEurMicros, updated.id);
   return updated ? json({ status: 'failed' }) : json({ error: 'unknown_job' }, 404);
 };

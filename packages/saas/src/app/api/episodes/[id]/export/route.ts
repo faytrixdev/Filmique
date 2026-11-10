@@ -3,7 +3,9 @@ import { cookies } from 'next/headers';
 import { getDb } from '@/db';
 import { drizzleEpisodeRepo } from '@/db/episodes-repo';
 import { drizzleExportRepo } from '@/db/exports-repo';
+import { drizzleCreditRepo } from '@/db/credits-repo';
 import { authSecret, readSession, SESSION_COOKIE } from '@/lib/auth';
+import { creditGateFrom } from '@/lib/credits';
 import { postExport, setAudioLookup, type ExportCtx } from '@/lib/export-flow';
 import { lambdaRender } from '@/lib/render-adapter';
 
@@ -14,7 +16,7 @@ const ctxFor = async (): Promise<ExportCtx> => {
   const userId = session ? await episodeRepo.userIdByEmail(session.email) : null;
   const exports = drizzleExportRepo(db);
   setAudioLookup((episodeId) => exports.latestAudio(episodeId));
-  return { episodeRepo, exports, render: lambdaRender(), gate: { charge: async () => true }, userId };
+  return { episodeRepo, exports, render: lambdaRender(), gate: creditGateFrom(drizzleCreditRepo(db)), userId };
 };
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }): Promise<Response> {

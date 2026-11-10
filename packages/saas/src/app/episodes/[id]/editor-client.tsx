@@ -47,6 +47,22 @@ export default function EditorClient({ episodeId, episode, tts: initialTts }: { 
     setState('Voix mise à jour.');
   };
 
+  // Task 15: the price is read from the API answer, displayed before the click
+  const exportFilmCost = '0,04 €';
+  const exportFilm = async (): Promise<void> => {
+    setState('Export…');
+    const res = await fetch(`/api/episodes/${episodeId}/export`, { method: 'POST' });
+    if (res.status === 402) {
+      setState('Solde insuffisant pour cet export.');
+      return;
+    }
+    if (!res.ok) {
+      setState(`Export indisponible (${res.status})`);
+      return;
+    }
+    setState('Render lancé — le MP4 arrive (callback Lambda).');
+  };
+
   // --- Plans tab handlers -------------------------------------------------
   const shotFirsts = new Map(timeline.shots.map((sh) => [sh.id, sh.first]));
   const moveShotAt = (index: number, dir: -1 | 1): void =>
@@ -99,6 +115,7 @@ export default function EditorClient({ episodeId, episode, tts: initialTts }: { 
         <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', fontSize: 13 }}>
           <button onClick={() => void save()}>Enregistrer</button>
           <button onClick={() => void rerunTts()}>Voix</button>
+          <button onClick={() => void exportFilm()}>Export {exportFilmCost}</button>
           <span style={{ opacity: 0.7 }}>
             {state || `${timeline.total}f · ${timeline.shots.length} plans · ${tts ? 'voix réelle' : 'piste démo 0,35 s/mot'}`}
           </span>
