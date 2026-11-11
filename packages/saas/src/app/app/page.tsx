@@ -7,6 +7,7 @@ import { getDb } from '@/db';
 import { drizzleEpisodeRepo } from '@/db/episodes-repo';
 import { drizzleCreditRepo } from '@/db/credits-repo';
 import { logoutAction } from '@/app/actions/auth';
+import { GenerateForm } from './generate-form';
 
 async function Dashboard() {
   await connection(); // session only exists at request time (cookies + Date.now)
@@ -25,7 +26,7 @@ async function Dashboard() {
         Connecté en tant qu&apos;{session.email} · solde {(balance / 1_000_000).toFixed(2)} €
       </p>
       {episodes.length === 0 ? (
-        <p style={{ fontSize: 14, opacity: 0.6 }}>Aucun épisode pour l&apos;instant — la génération (compose) arrive.</p>
+        <p style={{ fontSize: 14, opacity: 0.6 }}>Aucun épisode pour l&apos;instant — écrivez un « Et si … » ci-dessous.</p>
       ) : (
         <ul style={{ paddingLeft: 16, fontSize: 14 }}>
           {episodes.map((row) => (
@@ -38,6 +39,7 @@ async function Dashboard() {
           ))}
         </ul>
       )}
+      <GenerateForm />
       <form action={logoutAction}>
         <button type="submit">Se déconnecter</button>
       </form>
