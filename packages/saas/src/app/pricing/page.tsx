@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'Tarifs — What If Studio' };
+export const metadata: Metadata = { title: 'Tarifs — Filmique' };
 
 // The checkout URL lives in the env: swapping the Whop product never touches code.
 const checkoutUrl = process.env.WHOP_CHECKOUT_URL ?? '';
@@ -15,7 +15,7 @@ const perks = [
 export default function PricingPage(): React.ReactElement {
   return (
     <main style={{ maxWidth: 560, margin: '10vh auto', fontFamily: 'system-ui', textAlign: 'center' }}>
-      <h1>What If Studio</h1>
+      <h1>Filmique</h1>
       <p style={{ fontSize: 15, opacity: 0.8 }}>
         19 € / mois — abonnement Whop, résiliable en un clic.
       </p>
