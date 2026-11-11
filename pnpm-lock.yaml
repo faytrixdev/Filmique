@@ -71,7 +71,7 @@ importers:
         version: 1.2.0
       '@remotion/lambda':
         specifier: ^4.0.542
-        version: 4.0.542(@remotion/bundler@4.0.542(@swc/helpers@0.5.23)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@swc/helpers@0.5.23)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.2)
+        version: 4.0.542(@remotion/bundler@4.0.542(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.2)
       '@remotion/player':
         specifier: ^4.0.542
         version: 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -97,6 +97,12 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
+      '@remotion/bundler':
+        specifier: ^4.0.542
+        version: 4.0.542(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@remotion/renderer':
+        specifier: ^4.0.542
+        version: 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@types/node':
         specifier: ^20
         version: 20.19.43
@@ -112,6 +118,9 @@ importers:
       eslint-config-next:
         specifier: 16.4.5
         version: 16.4.5(@typescript-eslint/parser@8.72.2(eslint@9.39.5)(typescript@5.8.2))(eslint@9.39.5)(typescript@5.8.2)
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
       typescript:
         specifier: ^5
         version: 5.8.2
@@ -123,10 +132,10 @@ importers:
     dependencies:
       '@remotion/bundler':
         specifier: 4.0.530
-        version: 4.0.530(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        version: 4.0.530(@swc/helpers@0.5.23)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@remotion/cli':
         specifier: 4.0.530
-        version: 4.0.530(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.2)
+        version: 4.0.530(@swc/helpers@0.5.23)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.2)
       '@remotion/fonts':
         specifier: 4.0.530
         version: 4.0.530(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -5110,7 +5119,7 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@remotion/bundler@4.0.530(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+  '@remotion/bundler@4.0.530(@swc/helpers@0.5.23)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
       '@remotion/media-parser': 4.0.530
       '@remotion/studio': 4.0.530(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -5118,14 +5127,14 @@ snapshots:
       '@remotion/timeline-utils': 4.0.530(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@rspack/core': 1.7.11(@swc/helpers@0.5.23)
       '@rspack/plugin-react-refresh': 1.6.1(react-refresh@0.18.0)
-      css-loader: 7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32))
+      css-loader: 7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0)
       esbuild: 0.28.1
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
       react-refresh: 0.18.0
       remotion: 4.0.530(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32))
-      webpack: 5.105.0(esbuild@0.28.1)(postcss@8.5.32)
+      style-loader: 4.0.0(webpack@5.105.0)
+      webpack: 5.105.0(esbuild@0.28.1)
     transitivePeerDependencies:
       - '@minify-html/node'
       - '@remotion/video-matting'
@@ -5146,21 +5155,21 @@ snapshots:
       - webpack-cli
       - webpack-hot-middleware
 
-  '@remotion/bundler@4.0.542(@swc/helpers@0.5.23)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@remotion/bundler@4.0.542(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@remotion/studio': 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@remotion/studio-shared': 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@remotion/timeline-utils': 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@rspack/core': 2.3.0(@swc/helpers@0.5.23)
       '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.3.0(@swc/helpers@0.5.23))(react-refresh@0.18.0)
-      css-loader: 7.1.4(@rspack/core@2.3.0(@swc/helpers@0.5.23))(webpack@5.105.0)
+      css-loader: 7.1.4(@rspack/core@2.3.0(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32))
       esbuild: 0.28.1
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
       react-refresh: 0.18.0
       remotion: 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      style-loader: 4.0.0(webpack@5.105.0)
-      webpack: 5.105.0(esbuild@0.28.1)
+      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32))
+      webpack: 5.105.0(esbuild@0.28.1)(postcss@8.5.32)
     transitivePeerDependencies:
       - '@minify-html/node'
       - '@module-federation/runtime-tools'
@@ -5193,15 +5202,15 @@ snapshots:
 
   '@remotion/captions@4.0.542': {}
 
-  '@remotion/cli@4.0.530(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.2)':
+  '@remotion/cli@4.0.530(@swc/helpers@0.5.23)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.2)':
     dependencies:
       '@babel/parser': 7.24.1
-      '@remotion/bundler': 4.0.530(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@remotion/bundler': 4.0.530(@swc/helpers@0.5.23)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@remotion/media-utils': 4.0.530(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@remotion/player': 4.0.530(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@remotion/renderer': 4.0.530(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@remotion/studio': 4.0.530(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      '@remotion/studio-server': 4.0.530(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.2)
+      '@remotion/studio-server': 4.0.530(@swc/helpers@0.5.23)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.2)
       '@remotion/studio-shared': 4.0.530(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       dotenv: 17.3.1
       minimist: 1.2.6
@@ -5232,10 +5241,10 @@ snapshots:
       - webpack-cli
       - webpack-hot-middleware
 
-  '@remotion/cli@4.0.542(@swc/helpers@0.5.23)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.2)':
+  '@remotion/cli@4.0.542(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.2)':
     dependencies:
       '@babel/parser': 7.24.1
-      '@remotion/bundler': 4.0.542(@swc/helpers@0.5.23)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@remotion/bundler': 4.0.542(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@remotion/codemods': 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@remotion/licensing': 4.0.542
       '@remotion/media-utils': 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -5243,7 +5252,7 @@ snapshots:
       '@remotion/renderer': 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@remotion/studio': 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@remotion/studio-protocol': 4.0.542
-      '@remotion/studio-server': 4.0.542(@swc/helpers@0.5.23)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.2)
+      '@remotion/studio-server': 4.0.542(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.2)
       '@remotion/studio-shared': 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       dotenv: 17.3.1
       mediabunny: 1.64.0
@@ -5376,7 +5385,7 @@ snapshots:
 
   '@remotion/lambda-client@4.0.542': {}
 
-  '@remotion/lambda@4.0.542(@remotion/bundler@4.0.542(@swc/helpers@0.5.23)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@swc/helpers@0.5.23)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.2)':
+  '@remotion/lambda@4.0.542(@remotion/bundler@4.0.542(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.2)':
     dependencies:
       '@aws-sdk/client-cloudwatch-logs': 3.986.0
       '@aws-sdk/client-iam': 3.986.0
@@ -5387,8 +5396,8 @@ snapshots:
       '@aws-sdk/lib-storage': 3.986.0(@aws-sdk/client-s3@3.986.0)
       '@aws-sdk/middleware-flexible-checksums': 3.972.5
       '@aws-sdk/s3-request-presigner': 3.986.0
-      '@remotion/bundler': 4.0.542(@swc/helpers@0.5.23)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@remotion/cli': 4.0.542(@swc/helpers@0.5.23)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.2)
+      '@remotion/bundler': 4.0.542(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@remotion/cli': 4.0.542(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.2)
       '@remotion/lambda-client': 4.0.542
       '@remotion/licensing': 4.0.542
       '@remotion/renderer': 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -5556,11 +5565,11 @@ snapshots:
     dependencies:
       zod: 4.6.7
 
-  '@remotion/studio-server@4.0.530(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.2)':
+  '@remotion/studio-server@4.0.530(@swc/helpers@0.5.23)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.8.2)':
     dependencies:
       '@babel/parser': 7.24.1
       '@babel/types': 7.24.0
-      '@remotion/bundler': 4.0.530(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@remotion/bundler': 4.0.530(@swc/helpers@0.5.23)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@remotion/codemods': 4.0.530(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@remotion/renderer': 4.0.530(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@remotion/studio-protocol': 4.0.530
@@ -5598,11 +5607,11 @@ snapshots:
       - webpack-cli
       - webpack-hot-middleware
 
-  '@remotion/studio-server@4.0.542(@swc/helpers@0.5.23)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.2)':
+  '@remotion/studio-server@4.0.542(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.2)':
     dependencies:
       '@babel/parser': 7.24.1
       '@babel/types': 7.24.0
-      '@remotion/bundler': 4.0.542(@swc/helpers@0.5.23)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@remotion/bundler': 4.0.542(@swc/helpers@0.5.23)(postcss@8.5.32)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@remotion/codemods': 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@remotion/renderer': 4.0.542(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@remotion/studio-protocol': 4.0.542
@@ -6859,7 +6868,7 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
-  css-loader@7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32)):
+  css-loader@7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.32)
       postcss: 8.5.32
@@ -6871,9 +6880,9 @@ snapshots:
       semver: 7.8.6
     optionalDependencies:
       '@rspack/core': 1.7.11(@swc/helpers@0.5.23)
-      webpack: 5.105.0(esbuild@0.28.1)(postcss@8.5.32)
+      webpack: 5.105.0(esbuild@0.28.1)
 
-  css-loader@7.1.4(@rspack/core@2.3.0(@swc/helpers@0.5.23))(webpack@5.105.0):
+  css-loader@7.1.4(@rspack/core@2.3.0(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.32)
       postcss: 8.5.32
@@ -6885,7 +6894,7 @@ snapshots:
       semver: 7.8.6
     optionalDependencies:
       '@rspack/core': 2.3.0(@swc/helpers@0.5.23)
-      webpack: 5.105.0(esbuild@0.28.1)
+      webpack: 5.105.0(esbuild@0.28.1)(postcss@8.5.32)
 
   cssesc@3.0.0: {}
 
@@ -7134,7 +7143,7 @@ snapshots:
       eslint: 9.39.5
       eslint-import-resolver-node: 0.3.10
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5)(typescript@5.8.2))(eslint@9.39.5))(eslint@9.39.5)
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5)(typescript@5.8.2))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5)(typescript@5.8.2))(eslint@9.39.5))(eslint@9.39.5))(eslint@9.39.5)
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5)(typescript@5.8.2))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5)
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.5)
       eslint-plugin-react: 7.37.5(eslint@9.39.5)
       eslint-plugin-react-hooks: 7.1.1(eslint@9.39.5)
@@ -7167,7 +7176,7 @@ snapshots:
       tinyglobby: 0.2.17
       unrs-resolver: 1.13.0
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5)(typescript@5.8.2))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5)(typescript@5.8.2))(eslint@9.39.5))(eslint@9.39.5))(eslint@9.39.5)
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5)(typescript@5.8.2))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5)
     transitivePeerDependencies:
       - supports-color
 
@@ -7182,7 +7191,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5)(typescript@5.8.2))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5)(typescript@5.8.2))(eslint@9.39.5))(eslint@9.39.5))(eslint@9.39.5):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.72.2(eslint@9.39.5)(typescript@5.8.2))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.2.0

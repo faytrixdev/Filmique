@@ -1,0 +1,33 @@
+name: canary
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # every Monday 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # With a GEMINI_API_KEY secret the canary composes for real; without it
+      # the canned mock queue still exercises script→science→storyboard→Zod.
+      - name: Weekly canary (random topic → compose → schema gate)
+        env:
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER != '' && vars.LLM_PROVIDER || 'mock' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: pnpm -C packages/saas run canary
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canary-report
+          path: packages/saas/out/report.json

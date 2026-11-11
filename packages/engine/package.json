@@ -7,6 +7,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
+    "./compose-mock": "./src/compose-mock.ts",
+    "./timeline": "./src/timeline.ts",
+    "./providers/llm": "./src/providers/llm.ts",
     "./providers/voice": "./src/providers/voice.ts",
     "./src/*": "./src/*"
   },
