@@ -3,6 +3,7 @@ import {
   AnthropicProvider,
   GeminiProvider,
   MockLlmProvider,
+  OpenAiCompatProvider,
   extractJson,
   getLlmProvider,
 } from '../src/providers/llm';
@@ -101,6 +102,51 @@ describe('AnthropicProvider', () => {
   });
 });
 
+describe('OpenAiCompatProvider (groq / nim / openai)', () => {
+  it('posts to chat/completions with the bearer key, json mode and system message', async () => {
+    const calls = mockFetch(() => jsonResponse({ choices: [{ message: { content: '{"ok":true}' } }] }));
+
+    const provider = new OpenAiCompatProvider('groq', 'gsk-key', 'https://api.groq.com/openai/v1', 'llama-3.3-70b-versatile');
+    const text = await provider.generateText('Donne du JSON', { system: 'Tu es un storyboarder', json: true, temperature: 0.1, maxTokens: 512 });
+
+    expect(text).toBe('{"ok":true}');
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe('https://api.groq.com/openai/v1/chat/completions');
+    const headers = calls[0].init?.headers as Record<string, string>;
+    expect(headers.Authorization).toBe('Bearer gsk-key');
+    const body = JSON.parse(String(calls[0].init?.body)) as Record<string, unknown>;
+    expect(body.model).toBe('llama-3.3-70b-versatile');
+    expect(body.max_tokens).toBe(512);
+    expect(body.temperature).toBe(0.1);
+    expect(body.response_format).toEqual({ type: 'json_object' });
+    expect(body.messages).toEqual([
+      { role: 'system', content: 'Tu es un storyboarder' },
+      { role: 'user', content: 'Donne du JSON' },
+    ]);
+  });
+
+  it('no json mode and no system message by default', async () => {
+    const calls = mockFetch(() => jsonResponse({ choices: [{ message: { content: 'salut' } }] }));
+    const provider = new OpenAiCompatProvider('nim', 'nv-key', 'https://integrate.api.nvidia.com/v1', 'meta/llama-3.3-70b-instruct');
+    await provider.generateText('Salut');
+    const body = JSON.parse(String(calls[0].init?.body)) as Record<string, unknown>;
+    expect(body.response_format).toBeUndefined();
+    expect(body.messages).toEqual([{ role: 'user', content: 'Salut' }]);
+  });
+
+  it('throws on a server error with the provider name', async () => {
+    mockFetch(() => new Response('rate limit', { status: 429 }));
+    const provider = new OpenAiCompatProvider('groq', 'gsk-key', 'https://api.groq.com/openai/v1');
+    await expect(provider.generateText('Salut')).rejects.toThrow(/\(groq\).*429/);
+  });
+
+  it('throws when no text comes back', async () => {
+    mockFetch(() => jsonResponse({ choices: [{ message: {} }] }));
+    const provider = new OpenAiCompatProvider('openai', 'sk-key', 'https://api.openai.com/v1');
+    await expect(provider.generateText('Salut')).rejects.toThrow(/no text/i);
+  });
+});
+
 describe('MockLlmProvider', () => {
   it('serves queued responses then the default', async () => {
     const provider = new MockLlmProvider(['a', 'b'], 'fallback');
@@ -123,6 +169,18 @@ describe('getLlmProvider', () => {
     expect(provider).toBeInstanceOf(AnthropicProvider);
   });
 
+  it('selects the openai-compatible providers (groq, nim, openai)', () => {
+    const groq = getLlmProvider({ LLM_PROVIDER: 'groq', GROQ_API_KEY: 'k' });
+    expect(groq.name).toBe('groq');
+    expect(groq).toBeInstanceOf(OpenAiCompatProvider);
+
+    const nim = getLlmProvider({ LLM_PROVIDER: 'nim', NIM_API_KEY: 'k' });
+    expect(nim.name).toBe('nim');
+
+    const openai = getLlmProvider({ LLM_PROVIDER: 'openai', OPENAI_API_KEY: 'k' });
+    expect(openai.name).toBe('openai');
+  });
+
   it('selects the mock provider', () => {
     const provider = getLlmProvider({ LLM_PROVIDER: 'mock' });
     expect(provider.name).toBe('mock');
@@ -132,6 +190,8 @@ describe('getLlmProvider', () => {
   it('fails loudly when the api key is missing', () => {
     expect(() => getLlmProvider({ LLM_PROVIDER: 'gemini' })).toThrow(/GEMINI_API_KEY/);
     expect(() => getLlmProvider({ LLM_PROVIDER: 'anthropic' })).toThrow(/ANTHROPIC_API_KEY/);
+    expect(() => getLlmProvider({ LLM_PROVIDER: 'groq' })).toThrow(/GROQ_API_KEY/);
+    expect(() => getLlmProvider({ LLM_PROVIDER: 'nim' })).toThrow(/NIM_API_KEY/);
   });
 });
 

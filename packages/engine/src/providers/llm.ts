@@ -98,6 +98,50 @@ export class AnthropicProvider implements LlmProvider {
   }
 }
 
+export class OpenAiCompatProvider implements LlmProvider {
+  readonly name: string;
+
+  constructor(
+    name: string,
+    private readonly apiKey: string,
+    private readonly baseUrl: string,
+    private readonly model?: string,
+  ) {
+    this.name = name;
+  }
+
+  async generateText(prompt: string, opts: LlmOptions = {}): Promise<string> {
+    const messages: { role: string; content: string }[] = [];
+    if (opts.system !== undefined) messages.push({ role: 'system', content: opts.system });
+    messages.push({ role: 'user', content: prompt });
+
+    const body: Record<string, unknown> = {
+      model: this.model,
+      max_tokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
+      temperature: opts.temperature,
+      messages,
+    };
+    if (opts.json) body.response_format = { type: 'json_object' };
+
+    const res = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (res.status !== 200) {
+      throw new Error(`OpenAI-compatible request failed (${this.name}): HTTP ${res.status} ${await errorSnippet(res)}`);
+    }
+
+    const payload = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const text = payload.choices?.[0]?.message?.content ?? '';
+    if (!text) throw new Error(`OpenAI-compatible provider returned no text (${this.name})`);
+    return text;
+  }
+}
+
 export class MockLlmProvider implements LlmProvider {
   readonly name = 'mock';
 
@@ -121,6 +165,21 @@ export function getLlmProvider(env: NodeJS.ProcessEnv = process.env): LlmProvide
     const apiKey = env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error('Missing ANTHROPIC_API_KEY environment variable');
     return new AnthropicProvider(apiKey, env.ANTHROPIC_MODEL);
+  }
+  if (choice === 'groq') {
+    const apiKey = env.GROQ_API_KEY;
+    if (!apiKey) throw new Error('Missing GROQ_API_KEY environment variable');
+    return new OpenAiCompatProvider('groq', apiKey, 'https://api.groq.com/openai/v1', env.GROQ_MODEL ?? 'llama-3.3-70b-versatile');
+  }
+  if (choice === 'nim') {
+    const apiKey = env.NIM_API_KEY;
+    if (!apiKey) throw new Error('Missing NIM_API_KEY environment variable');
+    return new OpenAiCompatProvider('nim', apiKey, 'https://integrate.api.nvidia.com/v1', env.NIM_MODEL ?? 'meta/llama-3.3-70b-instruct');
+  }
+  if (choice === 'openai') {
+    const apiKey = env.OPENAI_API_KEY;
+    if (!apiKey) throw new Error('Missing OPENAI_API_KEY environment variable');
+    return new OpenAiCompatProvider('openai', apiKey, env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1', env.OPENAI_MODEL ?? 'gpt-4o-mini');
   }
   if (choice === 'gemini') {
     const apiKey = env.GEMINI_API_KEY;
