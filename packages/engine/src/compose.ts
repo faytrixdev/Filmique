@@ -57,8 +57,10 @@ export const draftStep = async <T>(llm: LlmProvider, zod: z.ZodType<T>, baseProm
     let parsed: unknown;
     try {
       parsed = extractJson(await llm.generateText(prompt, { system: DIRECTOR_SYSTEM, json: true, temperature: 0.8 }));
-    } catch {
-      lastErr = 'réponse non JSON';
+    } catch (e) {
+      // Surface the real failure (HTTP 401 key, 404 model, 429 quota, bad JSON…)
+      // instead of mislabeling everything "réponse non JSON".
+      lastErr = e instanceof Error ? e.message.slice(0, 300) : String(e);
       prompt = askAgain(basePrompt(), lastErr);
       continue;
     }
