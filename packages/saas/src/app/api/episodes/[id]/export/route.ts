@@ -7,7 +7,7 @@ import { drizzleCreditRepo } from '@/db/credits-repo';
 import { authSecret, readSession, SESSION_COOKIE } from '@/lib/auth';
 import { creditGateFrom } from '@/lib/credits';
 import { postExport, setAudioLookup, type ExportCtx } from '@/lib/export-flow';
-import { lambdaRender } from '@/lib/render-adapter';
+import { cloudrunRender, lambdaRender } from '@/lib/render-adapter';
 
 const ctxFor = async (): Promise<ExportCtx> => {
   const session = readSession((await cookies()).get(SESSION_COOKIE)?.value, authSecret(), Date.now());
@@ -16,7 +16,9 @@ const ctxFor = async (): Promise<ExportCtx> => {
   const userId = session ? await episodeRepo.userIdByEmail(session.email) : null;
   const exports = drizzleExportRepo(db);
   setAudioLookup((episodeId) => exports.latestAudio(episodeId));
-  return { episodeRepo, exports, render: lambdaRender(), gate: creditGateFrom(drizzleCreditRepo(db)), userId };
+  // backend by env: AWS Lambda first, then GCP Cloud Run, else null (503 render_unconfigured)
+  const render = lambdaRender() ?? cloudrunRender();
+  return { episodeRepo, exports, render, gate: creditGateFrom(drizzleCreditRepo(db)), userId };
 };
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }): Promise<Response> {
