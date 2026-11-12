@@ -12,7 +12,7 @@ export interface LlmProvider {
 
 const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash';
 const DEFAULT_ANTHROPIC_MODEL = 'claude-3-5-sonnet-latest';
-const DEFAULT_MAX_TOKENS = 4096;
+const DEFAULT_MAX_TOKENS = 16384;
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 
@@ -101,6 +101,10 @@ export class AnthropicProvider implements LlmProvider {
 export class OpenAiCompatProvider implements LlmProvider {
   readonly name: string;
 
+  // Reasoning models (openai/gpt-oss…): cap the thinking so JSON output keeps
+  // its token budget, else the generation ends empty and Groq's validator 400s.
+  private readonly lowReasoning: boolean;
+
   constructor(
     name: string,
     private readonly apiKey: string,
@@ -108,6 +112,7 @@ export class OpenAiCompatProvider implements LlmProvider {
     private readonly model?: string,
   ) {
     this.name = name;
+    this.lowReasoning = (this.model ?? '').startsWith('openai/gpt-oss');
   }
 
   async generateText(prompt: string, opts: LlmOptions = {}): Promise<string> {
@@ -117,10 +122,15 @@ export class OpenAiCompatProvider implements LlmProvider {
 
     const body: Record<string, unknown> = {
       model: this.model,
-      max_tokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
       temperature: opts.temperature,
       messages,
     };
+    if (this.lowReasoning) {
+      body.reasoning_effort = 'low';
+      body.max_completion_tokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
+    } else {
+      body.max_tokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
+    }
     if (opts.json) body.response_format = { type: 'json_object' };
 
     const res = await fetch(`${this.baseUrl}/chat/completions`, {
