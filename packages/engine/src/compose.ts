@@ -37,7 +37,8 @@ export const ScriptDraftZ = z.object({
 });
 export type ScriptDraft = z.infer<typeof ScriptDraftZ>;
 
-export const ScienceDraftZ = z.object({ science: z.array(ScienceZ).max(8) }).transform((d) => d.science);
+export const ScienceDraftObjZ = z.object({ science: z.array(ScienceZ).max(8) });
+export const ScienceDraftZ = ScienceDraftObjZ.transform((d) => d.science);
 export type ScienceDraft = z.infer<typeof ScienceDraftZ>;
 
 export const StoryboardDraftZ = z.object({
@@ -93,10 +94,16 @@ export const draftScript = async (input: ComposeInput, llm: LlmProvider): Promis
 };
 
 export const draftScience = async (script: ScriptDraft, llm: LlmProvider): Promise<ScienceDraft> => {
-  const sc = await draftStep(llm, ScienceDraftZ, () => sciencePrompt(script.script).prompt);
+  // The digits check lives in the validated schema: an empty science with
+  // quoted figures re-enters the retry loop instead of killing the compose.
   const digits = script.script.some((b) => /\d/.test(b.text));
-  if (digits && sc.length === 0) throw new Error('draftScience: quoted figures left unsupported (science is mandatory)');
-  return sc;
+  const zod = digits
+    ? ScienceDraftObjZ.refine((d) => d.science.length > 0, {
+        message: 'science is mandatory: le script cite des chiffres, donne chacun une affirmation + une source publique',
+      })
+    : ScienceDraftObjZ;
+  const d = await draftStep(llm, zod, () => sciencePrompt(script.script).prompt);
+  return d.science;
 };
 
 export const draftStoryboard = async (input: ComposeInput, script: ScriptDraft, science: ScienceDraft, llm: LlmProvider): Promise<StoryboardDraft> => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { clamp, easeOut, backOut } from '../anim';
-import { FONT } from '../fonts';
+import { FONT } from '../font-faces';
 
 // The schematic: the genre's diagram shot for the science beat ("That's real."). A dark blueprint with a fine grid,
 // cream line drawings that draw on, labels in the mono face, a number that counts, icons that light up in orange.

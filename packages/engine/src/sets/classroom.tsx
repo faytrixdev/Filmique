@@ -2,7 +2,7 @@ import React from 'react';
 import { C } from '../rig';
 import { S3, Box, makeRoom, pts } from '../room';
 import { WallTexture, RoomCorners, LightVeil, Dust } from '../light';
-import { FONT } from '../fonts';
+import { FONT } from '../font-faces';
 
 // The classroom: dusk windows on the left wall, the board on the back wall (`board` sets what is written on it),
 // a pinboard, a clock, the teacher's desk, two rows of desks with classmates seen from behind.

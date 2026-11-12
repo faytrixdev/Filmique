@@ -10,7 +10,7 @@ import { Cat, Mug, OpenBook, CookieTop, CookieStack } from '../props';
 import { Hero } from '../rig';
 import { Sparkle, Tag, TitleCard, PasteIn, FocusRings } from '../ui';
 import { stand, Tabletop } from '../furnish';
-import { FONT } from '../fonts';
+import { FONT } from '../font-faces';
 import { Kitchen, KitchenIsland, KITCHEN, islandTop } from '../sets/kitchen';
 import { Study, Desk } from '../sets/study';
 import { Classroom, SchoolDesk } from '../sets/classroom';

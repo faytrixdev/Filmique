@@ -2,7 +2,7 @@ import React from 'react';
 import { clamp, backOut } from '../anim';
 import { Glow } from '../light';
 import { SCH } from '../sets/schematic';
-import { FONT } from '../fonts';
+import { FONT } from '../font-faces';
 
 // Props promoted from the bespoke episode code (million16) so archetypes can reuse them:
 // the bank phone, the gold accents, coins, piles, the birthday cake and the origin balance chip.

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getLlmProvider } from '@what-if/engine/providers/llm';
-import { draftScript } from '@what-if/engine/compose';
+import { composeEpisode } from '@what-if/engine/compose';
 
 const env = Object.fromEntries(
   readFileSync('.env', 'utf8')
@@ -12,11 +12,10 @@ const env = Object.fromEntries(
 
 const llm = getLlmProvider(env as NodeJS.ProcessEnv);
 const t0 = Date.now();
-draftScript({ topic: 'Et si le pain tombait du ciel tous les jours ?' }, llm).then((draft) => {
-  const chars = draft.script.reduce((n, b) => n + b.text.length, 0);
-  console.log(`OK en ${Math.round((Date.now() - t0) / 1000)} s — title: ${draft.title.join(' ')} — ${draft.script.length} beats — ${chars} car.`);
-  console.log(draft.script.map((b) => `[${b.beat}] ${b.text}`).join('\n'));
+composeEpisode({ topic: 'Et si le pain tombait du ciel tous les jours ?' }, llm).then(({ episode }) => {
+  console.log(`OK en ${Math.round((Date.now() - t0) / 1000)} s — "${episode.title.join(' ')}" — ${episode.shots.length} shots — ${episode.script.length} beats — cast: ${episode.cast.join(', ')}`);
+  console.log(episode.script.map((b) => `[${b.beat}] ${b.text}`).join('\n'));
 }).catch((e) => {
-  console.error('FAIL:', e instanceof Error ? e.message : e);
+  console.error('FAIL:', e instanceof Error ? e.message.slice(0, 400) : e);
   process.exit(1);
 });
