@@ -169,7 +169,7 @@ export function getLlmProvider(env: NodeJS.ProcessEnv = process.env): LlmProvide
   if (choice === 'groq') {
     const apiKey = env.GROQ_API_KEY;
     if (!apiKey) throw new Error('Missing GROQ_API_KEY environment variable');
-    return new OpenAiCompatProvider('groq', apiKey, 'https://api.groq.com/openai/v1', env.GROQ_MODEL ?? 'llama-3.3-70b-versatile');
+    return new OpenAiCompatProvider('groq', apiKey, 'https://api.groq.com/openai/v1', env.GROQ_MODEL ?? 'openai/gpt-oss-120b');
   }
   if (choice === 'nim') {
     const apiKey = env.NIM_API_KEY;
