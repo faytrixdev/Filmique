@@ -22,7 +22,13 @@ describe('draftScript', () => {
 
   it('sanity: script length far from ~8.5 chars/s throws', async () => {
     const short = JSON.stringify({ title: ['TROP COURT'], script: [{ beat: 'hook', text: 'Trop court, ça.' }, { beat: 'premise', text: 'Vraiment trop court.' }, { beat: 'twist', text: 'Court quand même.' }, { beat: 'question', text: 'Court?' }] });
-    await expect(draftScript({ topic: 'x' }, mockSteps(short))).rejects.toThrow(/draftScript/);
+    await expect(draftScript({ topic: 'x' }, mockSteps(short, short, short))).rejects.toThrow(/script length/);
+  });
+
+  it('a too-long draft re-enters the retry loop instead of failing the compose', async () => {
+    const long = JSON.stringify({ title: ['TROP LONG'], script: Array.from({ length: 4 }, (_, i) => ({ beat: ['hook', 'premise', 'twist', 'question'][i], text: 'x'.repeat(300) })) });
+    const draft = await draftScript({ topic: 'x' }, mockSteps(long, SCRIPT_JSON));
+    expect(ScriptDraftZ.safeParse(draft).success).toBe(true);
   });
 
   it('the length gate itself is bounded (spot check)', async () => {

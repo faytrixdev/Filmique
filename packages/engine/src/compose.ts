@@ -77,15 +77,18 @@ const askAgain = (base: string, err: string) =>
 
 const scriptChars = (sc: ScriptDraft) => sc.script.reduce((n, b) => n + b.text.length, 0);
 
-export const draftScript = async (input: ComposeInput, llm: LlmProvider): Promise<ScriptDraft> =>
-  draftStep(llm, ScriptDraftZ, () => scriptPrompt(input).prompt).then((draft) => {
-    const secs = input.durationS ?? 24;
-    const chars = scriptChars(draft);
-    if (chars < secs * 8.5 * 0.7 || chars > secs * 8.5 * 1.3) {
-      throw new Error(`draftScript: script length ${chars} chars is far from ~${Math.round(secs * 8.5)} (draft again)`);
-    }
-    return draft;
-  });
+export const draftScript = async (input: ComposeInput, llm: LlmProvider): Promise<ScriptDraft> => {
+  // Length belongs to the validated schema, not a post-check: a too-short or
+  // too-long draft re-enters the retry loop with the exact char budget instead
+  // of killing the whole compose.
+  const secs = input.durationS ?? 24;
+  const target = Math.round(secs * 8.5);
+  const zod = ScriptDraftZ.refine((sc) => {
+    const chars = scriptChars(sc);
+    return chars >= target * 0.7 && chars <= target * 1.3;
+  }, { message: `script length must total ~${target} chars (${Math.round(target * 0.7)}-${Math.round(target * 1.3)}), écris plus court` });
+  return draftStep(llm, zod, () => scriptPrompt(input).prompt);
+};
 
 export const draftScience = async (script: ScriptDraft, llm: LlmProvider): Promise<ScienceDraft> => {
   const sc = await draftStep(llm, ScienceDraftZ, () => sciencePrompt(script.script).prompt);
