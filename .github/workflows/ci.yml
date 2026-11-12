@@ -19,7 +19,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Typecheck saas
-        run: pnpm -C packages/saas exec tsc --noEmit
+        run: pnpm -C packages/saas exec next typegen && pnpm -C packages/saas exec tsc --noEmit
       - name: Unit tests (engine, studio, jobs, saas)
         run: pnpm -r test
       - name: Build saas
