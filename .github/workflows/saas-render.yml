@@ -1,0 +1,66 @@
+name: saas-render
+
+# Render backend for the SaaS export flow: triggered by the app's
+# githubActionsRender adapter (workflow_dispatch), renders the saas-episode
+# composition on a GitHub runner and POSTs the render callback so the job row
+# settles. Free & unlimited on public repos; draws from included compute on
+# private ones.
+#
+# Repo secrets required:
+#   EXPORT_CALLBACK_URL     — e.g. https://app.example.com/api/exports/lambda
+#   EXPORT_CALLBACK_SECRET  — same value as the app's EXPORT_CALLBACK_SECRET
+
+on:
+  workflow_dispatch:
+    inputs:
+      jobId:
+        description: 'Export job id'
+        required: true
+        type: string
+      propsBase64:
+        description: 'Base64 episode props'
+        required: true
+        type: string
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Write props
+        working-directory: packages/saas
+        env:
+          PROPS: ${{ inputs.propsBase64 }}
+        run: node -e "require('fs').writeFileSync('props.json', Buffer.from(process.env.PROPS, 'base64'))"
+      - name: Render
+        working-directory: packages/saas
+        run: npx remotion render lambda/index.tsx saas-episode --props=props.json --output=out/video.mp4 --log=error
+      - name: Upload video
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-${{ inputs.jobId }}
+          path: packages/saas/out/video.mp4
+          retention-days: 14
+      - name: Callback
+        if: always()
+        env:
+          JOB_ID: ${{ inputs.jobId }}
+          CALLBACK_URL: ${{ secrets.EXPORT_CALLBACK_URL }}
+          CALLBACK_SECRET: ${{ secrets.EXPORT_CALLBACK_SECRET }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -f packages/saas/out/video.mp4 ]; then
+            BODY=$(printf '{"jobId":"%s","ok":true,"videoUrl":"%s"}' "$JOB_ID" "$RUN_URL")
+          else
+            BODY=$(printf '{"jobId":"%s","ok":false,"error":"render failed, see %s"}' "$JOB_ID" "$RUN_URL")
+          fi
+          curl -sf -X POST "$CALLBACK_URL" -H "content-type: application/json" -H "x-export-token: $CALLBACK_SECRET" -d "$BODY" || echo "callback unreachable (dev?) — job left queued"
+

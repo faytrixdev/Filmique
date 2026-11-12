@@ -100,3 +100,52 @@ export const cloudrunRender = (): RenderAdapter | null => {
     EXPORT_BUCKET: env.bucket,
   });
 };
+
+// GitHub Actions backend: a workflow_dispatch on the repository renders the
+// citation on a runner (2 cores / 8 GB) and POSTs the same render callback.
+// Free & unlimited on a public repo; ~200 renders/month on a private one.
+// No spawn needed — dispatching is a single API call from the Next process.
+
+export const githubActionsRenderEnv = (env: NodeJS.ProcessEnv = process.env): { repo: string; token: string; workflow: string; ref: string } | null => {
+  if (env.REMOTION_LAMBDA_FUNCTION_NAME || env.CLOUDRUN_SERVICE_NAME) return null; // upstream backends win
+  if (!env.GITHUB_RENDER_REPO || !env.GITHUB_RENDER_TOKEN) return null;
+  return {
+    repo: env.GITHUB_RENDER_REPO,
+    token: env.GITHUB_RENDER_TOKEN,
+    workflow: env.GITHUB_RENDER_WORKFLOW ?? 'saas-render.yml',
+    ref: env.GITHUB_RENDER_REF ?? 'main',
+  };
+};
+
+// workflow_dispatch inputs are capped near 64 KB: beyond that the dispatch
+// would be rejected anyway, so we fail fast with a clear error (the flow
+// refunds and marks the job failed).
+const PROPS_BASE64_MAX = 60_000;
+
+export const githubActionsRender = (envOverride: NodeJS.ProcessEnv = process.env): RenderAdapter | null => {
+  const env = githubActionsRenderEnv(envOverride);
+  if (!env) return null;
+  return {
+    startRender: async ({ jobId, episode, audioUrl }): Promise<void> => {
+      const props = JSON.stringify({
+        episodeJson: episode,
+        tts: { audioUrl: audioUrl ?? null, words: null },
+        metadata: { jobId },
+        jobId,
+      });
+      const propsBase64 = Buffer.from(props).toString('base64');
+      if (propsBase64.length > PROPS_BASE64_MAX) throw new Error('props_too_large');
+      const res = await fetch(`https://api.github.com/repos/${env.repo}/actions/workflows/${env.workflow}/dispatches`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${env.token}`,
+          accept: 'application/vnd.github+json',
+          'x-github-api-version': '2022-11-28',
+          'user-agent': 'saas-export',
+        },
+        body: JSON.stringify({ ref: env.ref, inputs: { jobId, propsBase64 } }),
+      });
+      if (!res.ok) throw new Error(`github_dispatch_failed (${res.status})`);
+    },
+  };
+};
