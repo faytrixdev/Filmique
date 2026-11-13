@@ -159,6 +159,25 @@ const coerceOnce = (raw: Record<string, unknown>, issues: { path: PropertyKey[];
   const out = { ...raw };
   const fixed = new Set<string>();
   for (const issue of issues) {
+    // nested array items (ticks.0, lines.1…): coerce the element in place
+    if (issue.path.length === 2 && typeof issue.path[1] === 'number') {
+      const k = String(issue.path[0]);
+      const arr = out[k];
+      if (!Array.isArray(arr)) continue;
+      const idx = issue.path[1] as number;
+      const item = arr[idx];
+      if (issue.expected === 'string' && typeof item === 'number') {
+        arr[idx] = String(item);
+        fixed.add(k);
+      } else if ((issue.expected === 'number' || issue.expected === 'int') && typeof item === 'string') {
+        const n = Number(item.replace(',', '.').replace(/[^0-9.+-]/g, ''));
+        if (Number.isFinite(n)) {
+          arr[idx] = issue.expected === 'int' ? Math.round(n) : n;
+          fixed.add(k);
+        }
+      }
+      continue;
+    }
     if (issue.path.length !== 1) continue;
     const k = String(issue.path[0]);
     if (!(k in out)) continue;
