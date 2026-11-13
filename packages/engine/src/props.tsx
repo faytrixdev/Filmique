@@ -1,6 +1,6 @@
 import React from 'react';
 import { C } from './rig';
-import { FONT } from './fonts';
+import { FONT } from './font-faces';
 
 // ---------- the cat ----------
 export const Cat: React.FC<{ x: number; y: number; mood: 'sleep' | 'alert' | 'peek'; f: number }> = ({ x, y, mood, f }) => {

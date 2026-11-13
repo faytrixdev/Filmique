@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { extractJson, type LlmProvider } from './providers';
+import { LlmRateLimitError } from './providers/llm';
 import { EpisodeJsonZ, FxZ, PowerZ, EditZ, ScriptBeatZ, ScienceZ, ShotZ, VoiceZ, type EpisodeJson } from './schema';
 import { scriptPrompt } from './prompts/script';
 import { sciencePrompt } from './prompts/science';
@@ -16,7 +17,7 @@ import { soundRules } from './sound/rules';
 // Each LLM step retries on its own: the base prompt is re-sent with the exact Zod error
 // appended, so a malformed reply costs one round-trip, never the episode.
 
-const MAX_STEP_ATTEMPTS = 3;
+const MAX_STEP_ATTEMPTS = 4;
 
 export type ComposeInput = {
   topic: string;
@@ -50,15 +51,28 @@ export const StoryboardDraftZ = z.object({
 });
 export type StoryboardDraft = z.infer<typeof StoryboardDraftZ>;
 
-/** Runs one LLM step: re-asks with the exact Zod failure appended, up to 3 attempts. */
+// Deterministic tightening: each retry cools the temperature so the model
+// trades creativity for constraint adherence exactly when it must comply.
+const retryTemperature = (attempt: number): number => [0.8, 0.5, 0.3, 0.2][attempt] ?? 0.2;
+
+/** Runs one LLM step: re-asks with the exact Zod failure appended, up to 4 attempts. */
 export const draftStep = async <T>(llm: LlmProvider, zod: z.ZodType<T>, basePrompt: () => string): Promise<T> => {
   let prompt = basePrompt();
   let lastErr = '';
+  // Rate limits are a pacing problem, not a quality problem: wait out the
+  // provider's retry-after instead of spending a quality attempt on it.
+  let rateWaits = 0;
   for (let i = 0; i < MAX_STEP_ATTEMPTS; i++) {
     let parsed: unknown;
     try {
-      parsed = extractJson(await llm.generateText(prompt, { system: DIRECTOR_SYSTEM, json: true, temperature: 0.8 }));
+      parsed = extractJson(await llm.generateText(prompt, { system: DIRECTOR_SYSTEM, json: true, temperature: retryTemperature(i) }));
     } catch (e) {
+      if (e instanceof LlmRateLimitError && rateWaits < 3) {
+        rateWaits++;
+        await new Promise((r) => setTimeout(r, Math.min(20, e.retryAfterS) * 1000));
+        i--; // the wait is not a failed generation
+        continue;
+      }
       // Surface the real failure (HTTP 401 key, 404 model, 429 quota, bad JSON…)
       // instead of mislabeling everything "réponse non JSON".
       lastErr = e instanceof Error ? e.message.slice(0, 300) : String(e);
@@ -88,8 +102,8 @@ export const draftScript = async (input: ComposeInput, llm: LlmProvider): Promis
   const target = Math.round(secs * 8.5);
   const zod = ScriptDraftZ.refine((sc) => {
     const chars = scriptChars(sc);
-    return chars >= target * 0.7 && chars <= target * 1.3;
-  }, { message: `script length must total ~${target} chars (${Math.round(target * 0.7)}-${Math.round(target * 1.3)}), écris plus court` });
+    return chars >= target * 0.65 && chars <= target * 1.4;
+  }, { message: `script length must total ~${target} chars (${Math.round(target * 0.65)}-${Math.round(target * 1.4)}), écris plus court` });
   return draftStep(llm, zod, () => scriptPrompt(input).prompt);
 };
 

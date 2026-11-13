@@ -1,7 +1,7 @@
 import React from 'react';
 import { clamp, backOut, easeOut } from './anim';
 import { C } from './rig';
-import { FONT } from './fonts';
+import { FONT } from './font-faces';
 
 // What goes on top of a shot. The genre keeps text off the picture: one title card, small UI readouts in a mono
 // face (a timer, a label, a chip), a few marks. No comic speech bubbles, no "HA HA", no captions of the voice.

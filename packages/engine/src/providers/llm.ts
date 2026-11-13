@@ -98,6 +98,16 @@ export class AnthropicProvider implements LlmProvider {
   }
 }
 
+export class LlmRateLimitError extends Error {
+  constructor(
+    message: string,
+    readonly retryAfterS: number,
+  ) {
+    super(message);
+    this.name = 'LlmRateLimitError';
+  }
+}
+
 export class OpenAiCompatProvider implements LlmProvider {
   readonly name: string;
 
@@ -127,7 +137,9 @@ export class OpenAiCompatProvider implements LlmProvider {
     };
     if (this.lowReasoning) {
       body.reasoning_effort = 'low';
-      body.max_completion_tokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
+      // reasoning_effort low keeps the thinking under ~1k tokens: 4096 covers
+      // it plus the JSON payload, and stays friendly to tight TPM budgets.
+      body.max_completion_tokens = opts.maxTokens ?? 4096;
     } else {
       body.max_tokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
     }
@@ -141,6 +153,10 @@ export class OpenAiCompatProvider implements LlmProvider {
       },
       body: JSON.stringify(body),
     });
+    if (res.status === 429) {
+      const retryAfter = Number(res.headers.get('retry-after')) || 8;
+      throw new LlmRateLimitError(`OpenAI-compatible rate limited (${this.name}): HTTP 429`, retryAfter);
+    }
     if (res.status !== 200) {
       throw new Error(`OpenAI-compatible request failed (${this.name}): HTTP ${res.status} ${await errorSnippet(res)}`);
     }

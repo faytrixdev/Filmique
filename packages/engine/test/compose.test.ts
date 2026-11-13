@@ -22,7 +22,7 @@ describe('draftScript', () => {
 
   it('sanity: script length far from ~8.5 chars/s throws', async () => {
     const short = JSON.stringify({ title: ['TROP COURT'], script: [{ beat: 'hook', text: 'Trop court, ça.' }, { beat: 'premise', text: 'Vraiment trop court.' }, { beat: 'twist', text: 'Court quand même.' }, { beat: 'question', text: 'Court?' }] });
-    await expect(draftScript({ topic: 'x' }, mockSteps(short, short, short))).rejects.toThrow(/script length/);
+    await expect(draftScript({ topic: 'x' }, mockSteps(short, short, short, short))).rejects.toThrow(/script length/);
   });
 
   it('a too-long draft re-enters the retry loop instead of failing the compose', async () => {
