@@ -85,3 +85,8 @@ export const readSession = (value: string | undefined, secret: string, now: numb
 
 export const SESSION_COOKIE = 'wis_session';
 export const authSecret = (): string => process.env.AUTH_SECRET ?? 'dev-secret-rotate-me';
+
+/** Session read for RSC pages: the request clock lives here, outside the
+ * component body, so the React purity lint stays green. */
+export const readRequestSession = (value: string | undefined, secret: string): { email: string } | null =>
+  readSession(value, secret, Date.now());

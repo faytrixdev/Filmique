@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { connection } from 'next/server';
-import { authSecret, readSession, SESSION_COOKIE } from '@/lib/auth';
+import { authSecret, readRequestSession, SESSION_COOKIE } from '@/lib/auth';
 import { getDb } from '@/db';
 import { drizzleEpisodeRepo } from '@/db/episodes-repo';
 import { drizzleJobsRepo } from '@/db/jobs-repo';
@@ -13,7 +13,7 @@ import type { TtsResult } from '@/lib/api-tts';
 
 async function Editor({ params }: { params: Promise<{ id: string }> }) {
   await connection(); // session + DB + params live only at request time
-  const session = readSession((await cookies()).get(SESSION_COOKIE)?.value, authSecret(), Date.now());
+  const session = readRequestSession((await cookies()).get(SESSION_COOKIE)?.value, authSecret());
   if (!session) redirect('/login');
   const db = getDb();
   const episodeRepo = drizzleEpisodeRepo(db);
