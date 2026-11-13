@@ -7,5 +7,13 @@
   },
   "devDependencies": {
     "typescript": "5.8.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.3.0",
+      "react-dom": "19.3.0",
+      "remotion": "4.0.542",
+      "@remotion/*": "4.0.542"
+    }
   }
 }

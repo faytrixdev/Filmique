@@ -8,17 +8,18 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@remotion/bundler": "4.0.530",
-    "@remotion/cli": "4.0.530",
-    "@remotion/fonts": "4.0.530",
-    "@remotion/google-fonts": "4.0.530",
-    "@remotion/renderer": "4.0.530",
+    "@remotion/bundler": "4.0.542",
+    "@remotion/cli": "4.0.542",
+    "@remotion/fonts": "4.0.542",
+    "@remotion/google-fonts": "4.0.542",
+    "@remotion/renderer": "4.0.542",
     "@what-if/engine": "workspace:*",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "remotion": "4.0.530"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.542"
   },
   "devDependencies": {
+    "@types/node": "^22",
     "@types/react": "19.3.0",
     "typescript": "5.8.2"
   }
