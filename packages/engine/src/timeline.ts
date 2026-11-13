@@ -20,6 +20,17 @@ const bankRound = (x: number): number => {
 
 type Resolved = { a: number; at: number; end: number };
 
+// Anchors come from the LLM storyboard while words come from a real TTS
+// transcript: they drift (accents, apostrophes, two-word anchors, numbers
+// spelled out). Resolution degrades stepwise instead of throwing — a missed
+// anchor must never kill the render.
+const normWord = (s: string): string =>
+  s
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^'a-z0-9]/gi, '')
+    .toLowerCase();
+
 const resolveAnchor = (
   at: string,
   words: Words,
@@ -38,14 +49,51 @@ const resolveAnchor = (
   if (!m) throw new Error(`bad anchor: ${at}`);
   const base = m[1].toLowerCase();
   const nth = m[2] ? parseInt(m[2], 10) : 1;
-  for (let found = 0, i = 0; i < words.length; i++) {
-    const w = words[i];
-    if (w.w.toLowerCase() !== base) continue;
-    if (w.s < pointer - 1e-9) continue;
-    found++;
-    if (found === nth) return { a: Math.max(0, bankRound(w.s * fps) - 2), at: bankRound(w.s * fps), end: w.e };
+  const tokens = base.split(/\s+/).filter(Boolean).map(normWord);
+  const nWords = words.map((w, i) => ({ i, w: normWord(w.w) }));
+  const speakThrough = (): Resolved => {
+    const a = Math.max(0, bankRound(pointer * fps));
+    return { a, at: a, end: pointer };
+  };
+
+  // 1. exact sequence (multi-word anchors) or exact word, nth occurrence
+  if (tokens.length > 0) {
+    for (let found = 0, k = 0; k < nWords.length; k++) {
+      if (nWords[k].w !== tokens[0]) continue;
+      if (words[nWords[k].i].s < pointer - 1e-9) continue;
+      let ok = true;
+      for (let t = 1; t < tokens.length; t++) {
+        if (nWords[k + t]?.w !== tokens[t]) {
+          ok = false;
+          break;
+        }
+      }
+      if (!ok) continue;
+      found++;
+      if (found === nth) {
+        const start = words[nWords[k].i];
+        const lastWord = words[nWords[k + tokens.length - 1].i];
+        return { a: Math.max(0, bankRound(start.s * fps) - 2), at: bankRound(start.s * fps), end: lastWord.e };
+      }
+    }
   }
-  throw new Error(`anchor word not found: ${at}`);
+
+  // 2. prefix match on the first token (TTS merged/split the word)
+  const head = tokens[0] ?? '';
+  if (head.length >= 3) {
+    for (let found = 0, k = 0; k < nWords.length; k++) {
+      if (!nWords[k].w.startsWith(head)) continue;
+      if (words[nWords[k].i].s < pointer - 1e-9) continue;
+      found++;
+      if (found === nth) {
+        const start = words[nWords[k].i];
+        return { a: Math.max(0, bankRound(start.s * fps) - 2), at: bankRound(start.s * fps), end: start.e };
+      }
+    }
+  }
+
+  // 3. speak-through: cut lands on the running pointer, never throws
+  return speakThrough();
 };
 
 const lineOf = (words: Words, a: number, b: number, fps: number): string => {
