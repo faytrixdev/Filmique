@@ -3,6 +3,11 @@ import { drizzle, NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { eq } from 'drizzle-orm';
 import { magicLinks, users } from './schema';
 import type { MagicRepo, StoredLink } from '../lib/auth';
+import { drizzleCreditRepo } from './credits-repo';
+
+/** Welcome credit for a brand-new account: ~25 exports at 0,04 €, replaced by
+ * the Whop monthly grant once the webhook is wired. */
+const WELCOME_GRANT_MICROS = 1_000_000;
 
 export const drizzleMagicRepo = (db: NeonHttpDatabase): MagicRepo => ({
   async save(link) {
@@ -21,6 +26,7 @@ export const drizzleMagicRepo = (db: NeonHttpDatabase): MagicRepo => ({
     const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
     if (existing[0]) return existing[0];
     const created = await db.insert(users).values({ email }).returning();
+    await drizzleCreditRepo(db).grant({ userId: created[0].id, deltaEurMicros: WELCOME_GRANT_MICROS, reason: 'welcome' });
     return created[0];
   },
 });
