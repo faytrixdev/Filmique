@@ -106,3 +106,13 @@ export const creditLedger = pgTable(
 );
 
 export const hasRendered = (status: string) => status === 'rendered' || status === 'failed';
+
+/** TTS audio bytes, served by /api/tts/[id]. Vercel's filesystem is read-only,
+ * so audio cannot live in public/; Neon is already the durable store here. */
+export const audioFiles = pgTable('audio_files', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  episodeId: uuid('episode_id').references(() => episodes.id, { onDelete: 'cascade' }),
+  mime: text('mime').notNull().default('audio/mpeg'),
+  dataB64: text('data_b64').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

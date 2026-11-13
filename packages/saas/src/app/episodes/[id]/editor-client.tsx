@@ -7,6 +7,7 @@ import { synthWords } from '@/lib/demo-words';
 import { SaaSEpisode, fpsSaaS } from '@/components/saas-episode';
 import type { TtsResult } from '@/lib/api-tts';
 import { clampKey, moveShot, type Shot } from '@/lib/editor-helpers';
+import { DEFAULT_VOICE_LABEL } from '@/lib/voices';
 
 const fps = fpsSaaS;
 
@@ -201,7 +202,7 @@ export default function EditorClient({ episodeId, episode, tts: initialTts }: { 
             <input
               value={draft.voice?.id ?? ''}
               onChange={(e) => setVoiceId(e.target.value)}
-              placeholder="ex. TX3LPaxmHKxFdv7VOQHJ"
+              placeholder={DEFAULT_VOICE_LABEL}
               style={{ width: '100%' }}
             />
             <label style={{ display: 'block', marginTop: 10 }}>Musique (bed déterministe)</label>

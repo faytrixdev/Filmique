@@ -3,6 +3,7 @@ import type { EpisodeJson } from '@what-if/engine/schema';
 import { episodeText, stitchBeats } from './tts-flow';
 import { getEpisode, NotFoundError, type EpisodeRepo } from './episodes';
 import type { TtsResult } from '../db/jobs-repo';
+import { DEFAULT_VOICE_ID } from './voices';
 
 export type { TtsResult };
 
@@ -35,7 +36,7 @@ export const postTts = async (ctx: TtsCtx, id: string): Promise<Response> => {
   const row = await getEpisode(ctx.episodeRepo, ctx.userId, id);
   if (!row) return json({ error: 'not_found' }, 404);
   const ep = row.episode as EpisodeJson;
-  const voiceId = ep.voice?.id ?? 'default';
+  const voiceId = ep.voice?.id?.trim() || DEFAULT_VOICE_ID;
   const text = episodeText(ep.script);
   try {
     const results: Awaited<ReturnType<VoiceProvider['synthesize']>>['words'][] = [];
