@@ -55,7 +55,7 @@ describe('episodes API (pure HTTP layer)', () => {
     for (const slug of SLUGS) {
       it(`stores, edits, snapshots and re-reads ${slug} unchanged`, async () => {
         const c = ctx('u1');
-        const gated = gateEpisode(structuredClone(fixtureOf(slug))); // canonical form
+        const gated = await gateEpisode(structuredClone(fixtureOf(slug))); // canonical form
         const created = await postEpisodes(c, req(fixtureOf(slug)));
         expect(created.status).toBe(201);
         const createdBody = (await created.json()) as { id: string; slug: string; status: string };
@@ -119,9 +119,9 @@ describe('episodes API (pure HTTP layer)', () => {
       expect(((await res.json()) as { error: string }).error).toBe('schema');
     });
 
-    it('service-level gate carries structured issues', () => {
+    it('service-level gate carries structured issues', async () => {
       try {
-        gateEpisode({ id: 'x' });
+        await gateEpisode({ id: 'x' });
         throw new Error('should have thrown');
       } catch (e) {
         expect(e).toBeInstanceOf(SchemaError);

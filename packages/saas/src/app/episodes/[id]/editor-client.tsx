@@ -2,7 +2,7 @@
 
 import React, { useMemo, useRef, useState } from 'react';
 import { Player, type PlayerRef } from '@remotion/player';
-import { composeTimeline, MUSIC, type EpisodeJson } from '@what-if/engine';
+import { ARCHETYPES, coerceProps, composeTimeline, MUSIC, type EpisodeJson } from '@what-if/engine';
 import { synthWords } from '@/lib/demo-words';
 import { SaaSEpisode, fpsSaaS } from '@/components/saas-episode';
 import type { TtsResult } from '@/lib/api-tts';
@@ -10,9 +10,21 @@ import { clampKey, moveShot, type Shot } from '@/lib/editor-helpers';
 
 const fps = fpsSaaS;
 
+/** Old episodes may hold drifted LLM props; coerce on open so the preview is
+ * correct before any save. Unsalvageable props fall back to schema defaults. */
+const coerceShots = (ep: EpisodeJson): EpisodeJson => ({
+  ...ep,
+  shots: ep.shots.map((s) => {
+    if (!s.archetype) return s;
+    const A = ARCHETYPES[s.archetype] ?? ARCHETYPES.wideRoom;
+    const coerced = coerceProps(A.PropsZ as never, (s.archetypeProps ?? {}) as Record<string, unknown>);
+    return coerced ? { ...s, archetypeProps: coerced } : { ...s, archetypeProps: undefined };
+  }),
+});
+
 export default function EditorClient({ episodeId, episode, tts: initialTts }: { episodeId: string; episode: EpisodeJson; tts: TtsResult | null }) {
   const [tab, setTab] = useState<'script' | 'shots' | 'audio'>('script');
-  const [draft, setDraft] = useState<EpisodeJson>(episode);
+  const [draft, setDraft] = useState<EpisodeJson>(() => coerceShots(episode));
   const [tts, setTts] = useState<TtsResult | null>(initialTts);
   const [state, setState] = useState('');
   const playerRef = useRef<PlayerRef>(null);

@@ -1,4 +1,3 @@
-import { ARCHETYPES, coerceProps } from '@what-if/engine';
 import { EpisodeJsonZ, type EpisodeJson } from '@what-if/engine/schema';
 
 // Episode storage domain: every write passes the engine Zod gate. The repo
@@ -7,16 +6,23 @@ import { EpisodeJsonZ, type EpisodeJson } from '@what-if/engine/schema';
 /** Props coercion on every gated write: drifted LLM props (string numbers,
  * invented enums, nulls) are salvaged against the archetype's Zod, unsalvageable
  * keys fall back to schema defaults. Repairing an old episode is then just a
- * save in the editor. */
-const coerceShotProps = (episode: EpisodeJson): EpisodeJson => ({
-  ...episode,
-  shots: episode.shots.map((s) => {
-    if (!s.archetype) return s;
-    const A = ARCHETYPES[s.archetype] ?? ARCHETYPES.wideRoom;
-    const coerced = coerceProps(A.PropsZ as never, (s.archetypeProps ?? {}) as Record<string, unknown>);
-    return coerced ? { ...s, archetypeProps: coerced } : { ...s, archetypeProps: undefined };
-  }),
-});
+ * save in the editor.
+ *
+ * The archetype registry pulls Remotion (client-only), so it is imported
+ * dynamically: a static import here breaks Next's page-data collection. */
+const coerceShotProps = async (episode: EpisodeJson): Promise<EpisodeJson> => {
+  const { ARCHETYPES } = await import('@what-if/engine/archetypes');
+  const { coerceProps } = await import('@what-if/engine/compose');
+  return {
+    ...episode,
+    shots: episode.shots.map((s) => {
+      if (!s.archetype) return s;
+      const A = ARCHETYPES[s.archetype] ?? ARCHETYPES.wideRoom;
+      const coerced = coerceProps(A.PropsZ as never, (s.archetypeProps ?? {}) as Record<string, unknown>);
+      return coerced ? { ...s, archetypeProps: coerced } : { ...s, archetypeProps: undefined };
+    }),
+  };
+};
 
 export type EpisodeRow = {
   id: string;
@@ -46,7 +52,7 @@ export class SchemaError extends Error {
   }
 }
 
-  export const gateEpisode = (data: unknown): EpisodeJson => {
+  export const gateEpisode = async (data: unknown): Promise<EpisodeJson> => {
   const res = EpisodeJsonZ.safeParse(data);
   if (!res.success) {
     throw new SchemaError(res.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })));
@@ -56,8 +62,8 @@ export class SchemaError extends Error {
 
 const owned = (row: EpisodeRow | null, userId: string): EpisodeRow | null => (row && row.userId === userId ? row : null);
 
-export const createEpisode = (repo: EpisodeRepo, userId: string, data: unknown): Promise<EpisodeRow> =>
-  repo.insert({ userId, episode: gateEpisode(data) });
+export const createEpisode = async (repo: EpisodeRepo, userId: string, data: unknown): Promise<EpisodeRow> =>
+  repo.insert({ userId, episode: await gateEpisode(data) });
 
 export const listEpisodes = (repo: EpisodeRepo, userId: string): Promise<EpisodeRow[]> => repo.listFor(userId);
 
@@ -74,7 +80,7 @@ export const saveEpisode = async (
 ): Promise<EpisodeRow> => {
   const row = owned(await repo.byId(id), userId);
   if (!row) throw new NotFoundError();
-  const episode = gateEpisode(data);
+  const episode = await gateEpisode(data);
   await repo.snapshot(id, episode, at);
   return { ...row, episode, updatedAt: at };
 };

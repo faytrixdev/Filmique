@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
     "./compose": "./src/compose.ts",
+    "./archetypes": "./src/archetypes/index.ts",
     "./compose-mock": "./src/compose-mock.ts",
     "./timeline": "./src/timeline.ts",
     "./providers/llm": "./src/providers/llm.ts",
