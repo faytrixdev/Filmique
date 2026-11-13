@@ -2,11 +2,9 @@ import 'dotenv/config';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { neon } from '@neondatabase/serverless';
-import { composeTimeline, EpisodeJsonZ, type EpisodeJson } from '@what-if/engine';
-import { ARCHETYPES } from '@what-if/engine/src/archetypes/registry';
+import { ARCHETYPES, buildShotMap, composeTimeline, EpisodeJsonZ, ShotFrame, type EpisodeJson } from '@what-if/engine';
 import type { Words } from '@what-if/engine/schema';
 import { synthWords } from '../src/lib/demo-words';
-import { ShotFrame } from '@what-if/engine/src/episode';
 
 // Repro of the Vercel editor black screen: load the LATEST episodes from Neon,
 // rebuild their timeline and ShotMap, then render every segment's shot at
@@ -28,7 +26,7 @@ const main = async (): Promise<void> => {
     console.log(`\n=== episode ${row.id}`);
     const parsed = EpisodeJsonZ.safeParse(row.episode);
     if (!parsed.success) {
-      console.log('episode json fails EpisodeJsonZ:', parsed.error.issues.slice(0, 3).map((i) => `${i.path.join('.')}: ${i.message}`));
+      console.log('episode json fails EpisodeJsonZ:', parsed.error.issues.slice(0, 3).map((i: { path: PropertyKey[]; message: string }) => `${i.path.join('.')}: ${i.message}`));
       continue;
     }
     const ep = parsed.data as EpisodeJson;
@@ -63,7 +61,7 @@ const main = async (): Promise<void> => {
       }
     }
     // render every bound shot at t=0 / mid / end of its first segment
-    const map = (await import('@what-if/engine/src/archetypes/registry')).buildShotMap(ep);
+    const map = buildShotMap(ep);
     for (const seg of tl.segments) {
       const Shot = map[seg.shot];
       if (!Shot) {
@@ -75,7 +73,7 @@ const main = async (): Promise<void> => {
       for (const t of [seg.t0, (seg.t0 + seg.t1) / 2, seg.t1 - 1]) {
         try {
           const html = renderToStaticMarkup(
-            React.createElement(ShotFrame, null, React.createElement(Shot, { t, len, f: seg.a, uid: seg.shot })),
+            React.createElement(ShotFrame, null, React.createElement(Shot as React.FC<Record<string, unknown>>, { t, len, f: seg.a, uid: seg.shot })),
           );
           const texts = (html.match(/>([^<>]{2,})</g) ?? []).length;
           if (html.length < 400) console.log(`seg ${seg.shot} t=${t.toFixed(0)}: NEARLY EMPTY (${html.length} chars, ${texts} text nodes)`);
