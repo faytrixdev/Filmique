@@ -81,15 +81,35 @@ export const ARCHETYPES: Record<string, Archetype<any>> = {
 
 export type CastTypeMap = Record<string, string>;
 
-/** Builds the SaaS ShotMap: every shot that carries an archetype gets a bound component.
- * Throws on unknown archetype names or props that fail the archetype's Zod (the SaaS gate). */
+/** Salvages LLM-written archetype props: schema first, then a coercion pass for
+ * common mangling (joined `lines` strings), then pure schema defaults, else the
+ * shot drops its archetype and renders the default set. Never throws. */
+const archetypePropsOf = (A: Archetype<any>, shot: z.infer<typeof ShotZ>): Record<string, unknown> | null => {
+  const raw = (shot.archetypeProps ?? {}) as Record<string, unknown>;
+  const direct = A.PropsZ.safeParse(raw);
+  if (direct.success) return direct.data as Record<string, unknown>;
+  const salvaged = { ...raw };
+  if (typeof salvaged.lines === 'string') {
+    const parts = (salvaged.lines as string).split(/\s*[|/]\s*|\n+/).filter((s) => s.trim().length > 0);
+    salvaged.lines = parts.length >= 2 ? [parts[0], parts[1]] : [parts[0] ?? '', ''];
+  }
+  const coerced = A.PropsZ.safeParse(salvaged);
+  if (coerced.success) return coerced.data as Record<string, unknown>;
+  const defaults = A.PropsZ.safeParse({});
+  return defaults.success ? (defaults.data as Record<string, unknown>) : null;
+};
+
+/** Builds the SaaS ShotMap: every shot that carries a known archetype gets a bound
+ * component. Unknown names or unsalvageable props degrade to the default set —
+ * a single bad shot must never kill the editor or the render. */
 export const buildShotMap = (ep: EpisodeJson): ShotMap => {
   const map: ShotMap = {};
   for (const shot of ep.shots as z.infer<typeof ShotZ>[]) {
     if (!shot.archetype) continue;
     const A = ARCHETYPES[shot.archetype];
-    if (!A) throw new Error(`unknown archetype '${shot.archetype}' on shot ${shot.id}`);
-    const props = A.PropsZ.parse(shot.archetypeProps ?? {});
+    if (!A) continue;
+    const props = archetypePropsOf(A, shot);
+    if (!props) continue;
     const Comp = A.Component;
     map[shot.id] = (sp: ShotProps) => <Comp {...sp} {...props} uid={shot.id} />;
   }

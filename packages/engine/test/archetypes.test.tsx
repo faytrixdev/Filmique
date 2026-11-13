@@ -95,13 +95,21 @@ describe('buildShotMap', () => {
     expect(Object.keys(map)).toEqual(['S1', 'S12']);
   });
 
-  it('throws on an unknown archetype', () => {
+  it('drops an unknown archetype instead of throwing', () => {
     const bad = { ...million, shots: [{ ...million.shots[0], archetype: 'nonexistent' }] };
-    expect(() => buildShotMap(bad)).toThrow(/unknown archetype/);
+    const map = buildShotMap(bad);
+    expect(Object.keys(map)).toEqual([]);
   });
 
-  it('throws on props that fail the archetype schema', () => {
+  it('falls back to defaults when props fail the archetype schema, never throws', () => {
     const bad = { ...million, shots: [{ ...million.shots[0], archetype: 'wideRoom', archetypeProps: { mood: 'furious' } }] };
-    expect(() => buildShotMap(bad)).toThrow();
+    const map = buildShotMap(bad);
+    expect(Object.keys(map)).toEqual(['S1']);
+  });
+
+  it('salvages a joined lines string for titleReveal', () => {
+    const bad = { ...million, shots: [{ ...million.shots[0], archetype: 'titleReveal', archetypeProps: { lines: 'PAIN DU CIEL | 2,4 KG PAR JOUR' } }] };
+    const map = buildShotMap(bad);
+    expect(Object.keys(map)).toEqual(['S1']);
   });
 });
