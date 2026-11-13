@@ -155,8 +155,9 @@ const editDistance = (a: string, b: string): number => {
   return dp[b.length];
 };
 
-const coerceOnce = (raw: Record<string, unknown>, issues: { path: PropertyKey[]; code?: string; expected?: string; values?: unknown[]; limit?: unknown }[]): Record<string, unknown> => {
+const coerceOnce = (raw: Record<string, unknown>, issues: { path: PropertyKey[]; code?: string; expected?: string; values?: unknown[]; limit?: unknown }[]): { next: Record<string, unknown>; fixed: Set<string> } => {
   const out = { ...raw };
+  const fixed = new Set<string>();
   for (const issue of issues) {
     if (issue.path.length !== 1) continue;
     const k = String(issue.path[0]);
@@ -164,19 +165,39 @@ const coerceOnce = (raw: Record<string, unknown>, issues: { path: PropertyKey[];
     const v = out[k];
     if (v === null) {
       delete out[k];
+      fixed.add(k);
       continue;
     }
-    if (issue.expected === 'number' && typeof v === 'string') {
+    if ((issue.expected === 'number' || issue.expected === 'int') && typeof v === 'string') {
       const n = Number(String(v).replace(',', '.').replace(/[^0-9.+-]/g, ''));
-      if (Number.isFinite(n)) out[k] = n;
+      if (Number.isFinite(n)) {
+        out[k] = issue.expected === 'int' ? Math.round(n) : n;
+        fixed.add(k);
+      }
+    } else if (issue.expected === 'int' && typeof v === 'number' && Number.isFinite(v)) {
+      out[k] = Math.round(v);
+      fixed.add(k);
+    } else if (issue.expected === 'number' && typeof v === 'string') {
+      const n = Number(String(v).replace(',', '.').replace(/[^0-9.+-]/g, ''));
+      if (Number.isFinite(n)) {
+        out[k] = n;
+        fixed.add(k);
+      }
     } else if (issue.expected === 'boolean' && typeof v === 'string') {
       const s = String(v).toLowerCase();
-      if (s === 'true' || s === 'yes' || s === '1') out[k] = true;
-      else if (s === 'false' || s === 'no' || s === '0') out[k] = false;
+      if (s === 'true' || s === 'yes' || s === '1') {
+        out[k] = true;
+        fixed.add(k);
+      } else if (s === 'false' || s === 'no' || s === '0') {
+        out[k] = false;
+        fixed.add(k);
+      }
     } else if ((issue.expected === 'array' || issue.expected === 'tuple') && typeof v === 'string') {
       out[k] = String(v).split(/\s*[|,/\n]\s*/).filter(Boolean);
+      fixed.add(k);
     } else if (issue.expected === 'string' && typeof v === 'number') {
       out[k] = String(v);
+      fixed.add(k);
     } else if (Array.isArray(issue.values) && typeof v === 'string') {
       const lower = String(v).toLowerCase();
       const hit =
@@ -187,25 +208,39 @@ const coerceOnce = (raw: Record<string, unknown>, issues: { path: PropertyKey[];
           const max = Math.max(c.length, lower.length) > 7 ? 3 : 2;
           return editDistance(c, lower) <= max;
         });
-      if (hit !== undefined) out[k] = hit;
+      if (hit !== undefined) {
+        out[k] = hit;
+        fixed.add(k);
+      }
     } else if (issue.code === 'too_small' && Array.isArray(v) && typeof issue.limit === 'number') {
       while (v.length < issue.limit) v.push('');
+      fixed.add(k);
     } else if (issue.code === 'too_small' && typeof v === 'number' && typeof issue.limit === 'number') {
-      out[k] = issue.limit;
+      out[k] = issue.limit + 1;
+      fixed.add(k);
     } else if (issue.code === 'too_big' && typeof v === 'number' && typeof issue.limit === 'number') {
       out[k] = issue.limit;
+      fixed.add(k);
     }
   }
-  return out;
+  return { next: out, fixed };
 };
 
 export const coerceProps = (PropsZ: z.ZodType<{ [k: string]: unknown }>, raw: Record<string, unknown>): Record<string, unknown> | null => {
-  let cur = raw;
-  for (let i = 0; i < 5; i++) {
+  let cur = { ...raw };
+  for (let i = 0; i < 6; i++) {
     const r = PropsZ.safeParse(cur);
     if (r.success) return r.data as Record<string, unknown>;
-    const next = coerceOnce(cur, r.error.issues as never);
-    if (JSON.stringify(next) === JSON.stringify(cur)) break;
+    const { next, fixed } = coerceOnce(cur, r.error.issues as never);
+    // Keys no coercion could rescue (invented enums, nonsense shapes) are dropped:
+    // their schema default kicks in while the salvaged props around them survive.
+    for (const issue of r.error.issues as { path: PropertyKey[] }[]) {
+      if (issue.path.length !== 1) continue;
+      const k = String(issue.path[0]);
+      if (!(k in next)) continue;
+      if (!fixed.has(k) && next[k] === cur[k]) delete next[k];
+    }
+    if (JSON.stringify(next) === JSON.stringify(cur)) return null;
     cur = next as Record<string, unknown>;
   }
   return null;
