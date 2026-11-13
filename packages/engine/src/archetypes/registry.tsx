@@ -106,8 +106,8 @@ export const buildShotMap = (ep: EpisodeJson): ShotMap => {
   const map: ShotMap = {};
   for (const shot of ep.shots as z.infer<typeof ShotZ>[]) {
     if (!shot.archetype) continue;
-    const A = ARCHETYPES[shot.archetype];
-    if (!A) continue;
+    // unknown name → wideRoom fallback: a visible generic room, never a black segment
+    const A = ARCHETYPES[shot.archetype] ?? ARCHETYPES.wideRoom;
     const props = archetypePropsOf(A, shot);
     if (!props) continue;
     const Comp = A.Component;

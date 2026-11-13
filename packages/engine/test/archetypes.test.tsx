@@ -95,10 +95,10 @@ describe('buildShotMap', () => {
     expect(Object.keys(map)).toEqual(['S1', 'S12']);
   });
 
-  it('drops an unknown archetype instead of throwing', () => {
+  it('binds an unknown archetype to the wideRoom fallback instead of dropping it', () => {
     const bad = { ...million, shots: [{ ...million.shots[0], archetype: 'nonexistent' }] };
     const map = buildShotMap(bad);
-    expect(Object.keys(map)).toEqual([]);
+    expect(Object.keys(map)).toEqual(['S1']);
   });
 
   it('falls back to defaults when props fail the archetype schema, never throws', () => {

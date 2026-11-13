@@ -3,11 +3,32 @@ import { DIRECTOR_SYSTEM } from './system';
 // The storyboard is the only step that must speak the archetype catalogue: the whitelist
 // below is generated from the live registry so prompts and code can never drift apart.
 
+type Def = { type?: string; innerType?: Def; values?: unknown; entries?: unknown; items?: unknown } | undefined;
+
+const describeField = (field: unknown): string => {
+  let def: Def = (field as { def?: Def })?.def;
+  let type = def?.type ?? 'unknown';
+  while ((type === 'optional' || type === 'default' || type === 'readonly') && def?.innerType) {
+    def = def.innerType;
+    type = def?.type ?? 'unknown';
+  }
+  if (type === 'enum' || type === 'literal') {
+    const vals = Array.isArray(def?.values) ? def.values : def?.entries ? Object.keys(def.entries as Record<string, unknown>) : [];
+    return vals.length > 0 ? vals.map(String).join('|') : 'string';
+  }
+  if (type === 'tuple') return 'tuple[2 strings]';
+  if (type === 'array') return 'array';
+  return type;
+};
+
 export const archWhitelist = (ARCHETYPES: Record<string, unknown>): string =>
   Object.entries(ARCHETYPES)
     .map(([name, A]) => {
-      const fields = Object.keys((((A as { PropsZ?: { shape?: Record<string, unknown> } }).PropsZ) ?? {}).shape ?? {});
-      return `  - ${name}(${fields.join(', ')})`;
+      const shape = ((((A as { PropsZ?: { shape?: Record<string, unknown> } }).PropsZ) ?? {}).shape ?? {}) as Record<string, unknown>;
+      const fields = Object.entries(shape)
+        .map(([k, v]) => `${k}: ${describeField(v)}`)
+        .join(', ');
+      return `  - ${name}(${fields})`;
     })
     .join('\n');
 
@@ -31,8 +52,9 @@ Soutiens scientifiques :
 ${input.science.map((s) => `- ${s.claim}`).join('\n')}
 
 Découpe le script en 8 à 16 plans, durée totale ≈ ${frames} frames (30 fps, tolérance ±15 %).
-Catalogue d'archetypes — SEULS CES NOMS SONT AUTORISÉS, avec les props exactes entre parenthèses (toutes optionnelles sauf celles notées *) :
+Catalogue d'archetypes — SEULS CES NOMS SONT AUTORISÉS, avec le TYPE EXACT de chaque prop (toutes optionnelles sauf celles notées *) :
 ${archWhitelist(input.ARCHETYPES)}
+TYPES STRICTS : un nombre s'écrit en JSON nombre (92, jamais "92"), un booléen en true/false (jamais "true"), une enum EXACTEMENT une des valeurs listées, une tuple[2 strings] = un tableau de 2 chaînes (le titre, le sous-titre).
 
 Pour chaque plan :
 - « size » : une courte description de cadrage ("wide", "medium", "macro insert", "close-up", "schematic", "title, wide", ...)

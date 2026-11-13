@@ -71,12 +71,19 @@ describe('adaptStoryboard', () => {
     expect(adapted.tail).toBe(1);
   });
 
-  it('keeps an unknown archetype out but keeps the shot', async () => {
+  it('falls back to wideRoom on an unknown archetype but keeps the shot', async () => {
     const sb = StoryboardDraftZ.parse(extractJson(STORYBOARD_JSON)) as StoryboardDraft;
     const bad = { ...sb, shots: sb.shots.map((s, i) => (i === 2 ? { ...s, archetype: 'nonexistent' } : s)) };
     const adapted = await adaptStoryboard(bad, undefined);
-    expect(adapted.shots[2].archetype).toBeUndefined();
+    expect(adapted.shots[2].archetype).toBe('wideRoom');
     expect(adapted.shots.length).toBe(6);
+  });
+
+  it('coerces drifted props (string numbers, invented enums) instead of dropping them', async () => {
+    const sb = StoryboardDraftZ.parse(extractJson(STORYBOARD_JSON)) as StoryboardDraft;
+    const bad = { ...sb, shots: sb.shots.map((s, i) => (i === 0 ? { ...s, archetype: 'wideRoom', archetypeProps: { mood: 'curieux', glow: '0,15', buzz: 'true' } } : s)) };
+    const adapted = await adaptStoryboard(bad, undefined);
+    expect(adapted.shots[0].archetypeProps).toMatchObject({ mood: 'curious', glow: 0.15, buzz: true });
   });
 });
 

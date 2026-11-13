@@ -64,10 +64,18 @@ exports[`composeEpisode (whole pipeline, mocked) > keeps science forcasting from
       "archetype": "titleReveal",
       "archetypeProps": {
         "accent": "PAIN",
+        "accentT": 38,
+        "cat": true,
         "lines": [
           "ET SI LE PAIN",
           "NOUS OBSERVE?",
         ],
+        "phone": true,
+        "size": 92,
+        "sparkle": true,
+        "stacks": [],
+        "variant": "raise",
+        "y": 170,
       },
       "id": "S1",
       "key": 60,
@@ -78,7 +86,15 @@ exports[`composeEpisode (whole pipeline, mocked) > keeps science forcasting from
     {
       "archetype": "wideRoom",
       "archetypeProps": {
+        "buzz": false,
+        "cake": false,
+        "candles": "16",
+        "deadCandle": false,
+        "glow": 0.6,
         "mood": "curious",
+        "phone": "",
+        "ring": false,
+        "room": "kitchen",
       },
       "id": "S2",
       "key": 40,
@@ -88,7 +104,15 @@ exports[`composeEpisode (whole pipeline, mocked) > keeps science forcasting from
     },
     {
       "archetype": "closeUpTurn",
-      "archetypeProps": {},
+      "archetypeProps": {
+        "expr": "worried",
+        "glasses": false,
+        "red": 0.45,
+        "rimSwitch": 0.55,
+        "scale": 6.4,
+        "tag": "",
+        "variant": "rooftop",
+      },
       "id": "S3",
       "key": 45,
       "note": "il comprend",
@@ -97,7 +121,18 @@ exports[`composeEpisode (whole pipeline, mocked) > keeps science forcasting from
     },
     {
       "archetype": "schematicBar",
-      "archetypeProps": {},
+      "archetypeProps": {
+        "rate": 0.02,
+        "result": "−33 %",
+        "ticks": [
+          "0",
+          "10 ANS",
+          "20 ANS",
+        ],
+        "title": "POUVOIR D'ACHAT",
+        "unit": "2 % PAR AN",
+        "years": 20,
+      },
       "id": "S4",
       "key": 50,
       "note": "un chiffre",
@@ -108,6 +143,8 @@ exports[`composeEpisode (whole pipeline, mocked) > keeps science forcasting from
       "archetype": "arrivalWalk",
       "archetypeProps": {
         "cast": "suit",
+        "chip": true,
+        "expression": "worried",
       },
       "id": "S5",
       "key": 40,
@@ -117,7 +154,11 @@ exports[`composeEpisode (whole pipeline, mocked) > keeps science forcasting from
     },
     {
       "archetype": "pilesLand",
-      "archetypeProps": {},
+      "archetypeProps": {
+        "book": false,
+        "piles": [],
+        "slide": false,
+      },
       "id": "S6",
       "key": 36,
       "note": "les miches atterrissent",
