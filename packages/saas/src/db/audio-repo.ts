@@ -7,12 +7,12 @@ import { audioFiles } from './schema';
 // at runtime are not served. Base64 in a text column keeps it dependency-free.
 
 export const drizzleAudioStore = (db: NeonHttpDatabase) => ({
-  async save(bytes: Uint8Array, episodeId?: string): Promise<string> {
+  async save(bytes: Uint8Array, episodeId?: string, mime = 'audio/mpeg'): Promise<string> {
     const id = randomUUID();
     await db.insert(audioFiles).values({
       id,
       episodeId: episodeId ?? null,
-      mime: 'audio/mpeg',
+      mime,
       dataB64: Buffer.from(bytes).toString('base64'),
     });
     return id;

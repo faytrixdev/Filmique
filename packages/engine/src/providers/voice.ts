@@ -1,12 +1,55 @@
 import type { Words } from '../schema';
 
 export interface VoiceProvider {
-  synthesize(text: string, voiceId: string): Promise<{ audio: Uint8Array; words: Words }>;
+  synthesize(text: string, voiceId: string): Promise<{ audio: Uint8Array; words: Words; mime?: string }>;
 }
 
 const DEFAULT_BASE_URL = 'https://api.cartesia.ai';
-const DEFAULT_MODEL_ID = 'sonic-2';
-const CARTESIA_VERSION = '2024-11-13';
+const DEFAULT_MODEL_ID = 'sonic-latest';
+const CARTESIA_VERSION = '2026-08-14';
+const SAMPLE_RATE = 44100;
+
+/** Minimal WebSocket surface, so the provider can be tested with a fake socket. */
+export type WsSocket = {
+  send(data: string): void;
+  close(): void;
+  addEventListener(type: string, listener: (event: { data?: unknown }) => void): void;
+};
+
+export type WsFactory = (url: string, headers: Record<string, string>) => WsSocket;
+
+const defaultWsFactory: WsFactory = (url, headers) => {
+  const Ctor = (globalThis as unknown as { WebSocket?: new (u: string, o?: unknown) => WsSocket }).WebSocket;
+  if (!Ctor) throw new Error('WebSocket is not available in this runtime');
+  return new Ctor(url, { headers });
+};
+
+/** PCM (s16le, mono) to a WAV container - playable by browsers and Remotion. */
+export const pcmToWav = (pcm: Uint8Array, sampleRate = SAMPLE_RATE, channels = 1): Uint8Array => {
+  const header = new ArrayBuffer(44);
+  const view = new DataView(header);
+  const writeStr = (offset: number, value: string): void => {
+    for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i));
+  };
+  const bytesPerSample = 2;
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + pcm.byteLength, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * channels * bytesPerSample, true);
+  view.setUint16(32, channels * bytesPerSample, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, 'data');
+  view.setUint32(40, pcm.byteLength, true);
+  const out = new Uint8Array(44 + pcm.byteLength);
+  out.set(new Uint8Array(header), 0);
+  out.set(pcm, 44);
+  return out;
+};
 
 const errorSnippet = async (res: Response): Promise<string> => {
   const text = await res.text().catch(() => '');
@@ -76,10 +119,13 @@ export const parseCartesiaWordsFromJsonLines = (raw: string): Words => {
   return words;
 };
 
+/** Cartesia TTS over the v2 WebSocket API: one call returns the PCM audio AND
+ * the word timestamps (the old HTTP endpoints /tts/bytes + /tts/with-timestamps
+ * are gone, and the bytes endpoint no longer exposes timestamps). */
 export class CartesiaVoice implements VoiceProvider {
   constructor(
     private readonly apiKey: string,
-    private readonly options: { baseUrl?: string; modelId?: string } = {},
+    private readonly options: { baseUrl?: string; modelId?: string; wsFactory?: WsFactory } = {},
   ) {}
 
   private get baseUrl(): string {
@@ -90,56 +136,110 @@ export class CartesiaVoice implements VoiceProvider {
     return this.options.modelId ?? process.env.CARTESIA_MODEL_ID ?? DEFAULT_MODEL_ID;
   }
 
+  private get wsUrl(): string {
+    const base = this.baseUrl.replace(/^http/, 'ws');
+    return `${base}/tts/websocket`;
+  }
+
   private get headers(): Record<string, string> {
     return {
       'X-API-Key': this.apiKey,
       'Cartesia-Version': CARTESIA_VERSION,
-      'Content-Type': 'application/json',
     };
   }
 
-  private body(text: string, voiceId: string): Record<string, unknown> {
+  private request(text: string, voiceId: string): Record<string, unknown> {
     return {
       model_id: this.modelId,
-      voice: { mode: 'id', id: voiceId },
-      data: { text },
+      transcript: text,
+      voice: voiceId,
       language: 'fr',
+      output_format: { container: 'raw', encoding: 'pcm_s16le', sample_rate: SAMPLE_RATE },
+      add_timestamps: true,
+      continue: false,
+      context_id: `tts_${Math.random().toString(36).slice(2, 12)}`,
     };
   }
 
-  async synthesize(text: string, voiceId: string): Promise<{ audio: Uint8Array; words: Words }> {
-    const body = this.body(text, voiceId);
+  async synthesize(text: string, voiceId: string): Promise<{ audio: Uint8Array; words: Words; mime?: string }> {
+    const factory = this.options.wsFactory ?? defaultWsFactory;
+    const socket = factory(this.wsUrl, this.headers);
+    const chunks: Uint8Array[] = [];
+    const words: Words = [];
 
-    const audioRes = await fetch(`${this.baseUrl}/tts/bytes`, {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify(body),
+    const result = await new Promise<{ pcm: Uint8Array; words: Words }>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Cartesia synthesis timed out')), 60_000);
+      const finish = (fn: () => void): void => {
+        clearTimeout(timer);
+        fn();
+      };
+      socket.addEventListener('open', () => {
+        socket.send(JSON.stringify(this.request(text, voiceId)));
+      });
+      socket.addEventListener('message', (event) => {
+        const raw = typeof event.data === 'string' ? event.data : String(event.data ?? '');
+        let msg: {
+          type?: string;
+          data?: string;
+          done?: boolean;
+          title?: string;
+          message?: string;
+          word_timestamps?: { words?: unknown; start?: unknown; end?: unknown };
+        };
+        try {
+          msg = JSON.parse(raw);
+        } catch {
+          return;
+        }
+        if (msg.type === 'chunk' && typeof msg.data === 'string') {
+          chunks.push(new Uint8Array(Buffer.from(msg.data, 'base64')));
+          return;
+        }
+        if (msg.type === 'timestamps' && msg.word_timestamps) {
+          const wt = msg.word_timestamps;
+          const ws_ = Array.isArray(wt.words) ? wt.words : [];
+          const starts = Array.isArray(wt.start) ? wt.start : [];
+          const ends = Array.isArray(wt.end) ? wt.end : [];
+          for (let i = 0; i < ws_.length; i++) {
+            const w = typeof ws_[i] === 'string' ? (ws_[i] as string) : firstString((ws_[i] ?? {}) as Record<string, unknown>, ['word', 'text', 'w']);
+            if (!w) continue;
+            words.push({ w, s: Number(starts[i] ?? 0), e: Number(ends[i] ?? 0), p: '' });
+          }
+          return;
+        }
+        if (msg.type === 'error') {
+          finish(() => reject(new Error(`Cartesia error: ${msg.title ?? ''} ${msg.message ?? ''}`.trim())));
+          return;
+        }
+        if (msg.type === 'done' && msg.done) {
+          finish(() => resolve({ pcm: concatBytes(chunks), words }));
+        }
+      });
+      socket.addEventListener('error', () => {
+        finish(() => reject(new Error('Cartesia websocket error')));
+      });
     });
-    if (audioRes.status !== 200) {
-      throw new Error(`Cartesia audio request failed: HTTP ${audioRes.status} ${await errorSnippet(audioRes)}`);
-    }
-    const audio = new Uint8Array(await audioRes.arrayBuffer());
 
-    const stampRes = await fetch(`${this.baseUrl}/tts/with-timestamps`, {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify({ ...body, output_format: 'raw' }),
-    });
-    if (stampRes.status !== 200) {
-      throw new Error(`Cartesia timestamps request failed: HTTP ${stampRes.status} ${await errorSnippet(stampRes)}`);
-    }
-    const raw = await stampRes.text();
-
-    let words: Words = [];
     try {
-      words = parseCartesiaWords(JSON.parse(raw));
+      socket.close();
     } catch {
-      words = parseCartesiaWordsFromJsonLines(raw);
+      /* already closed */
     }
 
-    return { audio, words };
+    return { audio: pcmToWav(result.pcm), words: result.words, mime: 'audio/wav' };
   }
 }
+
+const concatBytes = (parts: Uint8Array[]): Uint8Array => {
+  const total = parts.reduce((sum, p) => sum + p.byteLength, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.byteLength;
+  }
+  return out;
+};
 
 export class MockVoice implements VoiceProvider {
   async synthesize(text: string): Promise<{ audio: Uint8Array; words: Words }> {

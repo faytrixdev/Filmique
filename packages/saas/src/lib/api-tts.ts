@@ -17,7 +17,7 @@ export type TtsJobsRepo = {
   latestDone(episodeId: string): Promise<TtsResult | null>;
 };
 
-export type AudioStore = (bytes: Uint8Array) => Promise<string>;
+export type AudioStore = (bytes: Uint8Array, mime?: string) => Promise<string>;
 
 export type TtsCtx = {
   episodeRepo: EpisodeRepo;
@@ -41,13 +41,15 @@ export const postTts = async (ctx: TtsCtx, id: string): Promise<Response> => {
   try {
     const results: Awaited<ReturnType<VoiceProvider['synthesize']>>['words'][] = [];
     const audioBytes: Uint8Array[] = [];
+    const mimes: string[] = [];
     for (const beat of ep.script) {
-      const { audio, words } = await ctx.voice.synthesize(beat.text.trim(), voiceId);
+      const { audio, words, mime } = await ctx.voice.synthesize(beat.text.trim(), voiceId);
       results.push(words);
       audioBytes.push(audio);
+      mimes.push(mime ?? 'audio/mpeg');
     }
     const { words, offsets } = stitchBeats(results);
-    const audioUrl = await ctx.saveAudio(concatBytes(audioBytes));
+    const audioUrl = await ctx.saveAudio(concatBytes(audioBytes), mimes[0]);
     const value: TtsResult = { audioUrl, words, offsets, voiceId };
     await ctx.jobs.recordDone(id, { voiceId, text }, value);
     return json(value);

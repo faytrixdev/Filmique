@@ -7,7 +7,7 @@ import {
   extractJson,
   getLlmProvider,
 } from '../src/providers/llm';
-import { CartesiaVoice, MockVoice } from '../src/providers/voice';
+import { CartesiaVoice, MockVoice, type WsFactory } from '../src/providers/voice';
 
 type FetchCall = { url: string; init: RequestInit | undefined };
 
@@ -214,79 +214,63 @@ describe('extractJson', () => {
   });
 });
 
+/** Fake Cartesia websocket: emits chunks, word timestamps, then done. */
+const fakeWs = (messages: { type: string; [k: string]: unknown }[]): WsFactory => () => {
+  const listeners: Record<string, ((event: { data?: unknown }) => void)[]> = {};
+  return {
+    send: () => {
+      setTimeout(() => {
+        for (const msg of messages) {
+          for (const listener of listeners['message'] ?? []) listener({ data: JSON.stringify(msg) });
+        }
+      }, 0);
+    },
+    close: () => {},
+    addEventListener: (type: string, listener: (event: { data?: unknown }) => void) => {
+      (listeners[type] ??= []).push(listener);
+      if (type === 'open') setTimeout(() => listener({}), 0);
+    },
+  };
+};
+
 describe('CartesiaVoice', () => {
-  it('downloads audio and parses word timestamps', async () => {
-    const calls = mockFetch((url) => {
-      if (url.endsWith('/tts/bytes')) {
-        return new Response(new Uint8Array([1, 2, 3, 4]));
-      }
-      return jsonResponse({ words: [{ word: 'Bonjour', start: 0, end: 0.4, phoneme: 'bo' }] });
+  it('returns wav audio and the word timestamps from the websocket', async () => {
+    const voice = new CartesiaVoice('secret-key', {
+      wsFactory: fakeWs([
+        { type: 'chunk', data: Buffer.from([1, 2, 3, 4]).toString('base64') },
+        { type: 'timestamps', word_timestamps: { words: ['Bonjour'], start: [0], end: [0.4] } },
+        { type: 'done', done: true },
+      ]),
     });
-
-    const voice = new CartesiaVoice('secret-key');
     const result = await voice.synthesize('Bonjour', 'voice-1');
-
-    expect(result.audio.length).toBe(4);
-    expect(result.words).toEqual([{ w: 'Bonjour', s: 0, e: 0.4, p: 'bo' }]);
-    expect(calls.map((c) => c.url)).toEqual([
-      'https://api.cartesia.ai/tts/bytes',
-      'https://api.cartesia.ai/tts/with-timestamps',
-    ]);
-    const headers = calls[0].init?.headers as Record<string, string>;
-    expect(headers['X-API-Key']).toBe('secret-key');
-    expect(headers['Cartesia-Version']).toBe('2024-11-13');
-    const body = JSON.parse(String(calls[0].init?.body)) as Record<string, unknown>;
-    expect(body.model_id).toBe('sonic-2');
-    expect(body.voice).toEqual({ mode: 'id', id: 'voice-1' });
-    expect(body.data).toEqual({ text: 'Bonjour' });
-    expect(body.language).toBe('fr');
-    const stampBody = JSON.parse(String(calls[1].init?.body)) as Record<string, unknown>;
-    expect(stampBody.output_format).toBe('raw');
+    expect(result.mime).toBe('audio/wav');
+    expect(result.audio.length).toBe(44 + 4);
+    expect(String.fromCharCode(...result.audio.slice(0, 4))).toBe('RIFF');
+    expect(result.words).toEqual([{ w: 'Bonjour', s: 0, e: 0.4, p: '' }]);
   });
 
-  it('accepts the alternate timestamp shapes', async () => {
-    mockFetch((url) => {
-      if (url.endsWith('/tts/bytes')) return new Response(new Uint8Array([9]));
-      return jsonResponse([{ w: 'Salut', s: 0.1, e: 0.5, p: 'sa' }]);
+  it('accumulates one timestamp message per word', async () => {
+    const voice = new CartesiaVoice('secret-key', {
+      wsFactory: fakeWs([
+        { type: 'timestamps', word_timestamps: { words: ['Bonjour'], start: [0], end: [0.4] } },
+        { type: 'timestamps', word_timestamps: { words: ['monde'], start: [0.4], end: [0.9] } },
+        { type: 'done', done: true },
+      ]),
     });
-    const voice = new CartesiaVoice('secret-key');
-    const result = await voice.synthesize('Salut', 'voice-1');
-    expect(result.words).toEqual([{ w: 'Salut', s: 0.1, e: 0.5, p: 'sa' }]);
-  });
-
-  it('accepts a json-lines timestamp stream', async () => {
-    mockFetch((url) => {
-      if (url.endsWith('/tts/bytes')) return new Response(new Uint8Array([9]));
-      return new Response(
-        '{"words":[{"word":"Bonjour","start":0,"end":0.4}]}\n{"words":[{"word":"monde","start":0.4,"end":0.8}]}',
-      );
-    });
-    const voice = new CartesiaVoice('secret-key');
     const result = await voice.synthesize('Bonjour monde', 'voice-1');
     expect(result.words).toEqual([
       { w: 'Bonjour', s: 0, e: 0.4, p: '' },
-      { w: 'monde', s: 0.4, e: 0.8, p: '' },
+      { w: 'monde', s: 0.4, e: 0.9, p: '' },
     ]);
   });
 
-  it('keeps the audio when the timestamp shape is unexpected', async () => {
-    mockFetch((url) => {
-      if (url.endsWith('/tts/bytes')) return new Response(new Uint8Array([7]));
-      return jsonResponse({ unexpected: true });
+  it('rejects when the provider reports an error', async () => {
+    const voice = new CartesiaVoice('secret-key', {
+      wsFactory: fakeWs([{ type: 'error', title: 'Invalid model', message: 'bad model' }]),
     });
-    const voice = new CartesiaVoice('secret-key');
-    const result = await voice.synthesize('Bonjour', 'voice-1');
-    expect(result.audio.length).toBe(1);
-    expect(result.words).toEqual([]);
-  });
-
-  it('throws on a server error', async () => {
-    mockFetch(() => new Response('quota exceeded', { status: 500 }));
-    const voice = new CartesiaVoice('secret-key');
-    await expect(voice.synthesize('Bonjour', 'voice-1')).rejects.toThrow(/500/);
+    await expect(voice.synthesize('Bonjour', 'voice-1')).rejects.toThrow(/Invalid model/);
   });
 });
-
 describe('MockVoice', () => {
   it('returns words timed at 0.35s each', async () => {
     const voice = new MockVoice();

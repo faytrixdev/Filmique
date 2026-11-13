@@ -32,7 +32,7 @@ const ctxFor = async (episodeId: string): Promise<TtsCtx> => {
     episodeRepo: repo,
     jobs: drizzleJobsRepo(getDb()),
     voice,
-    saveAudio: async (bytes) => `${await origin()}/api/tts/${await audio.save(bytes, episodeId)}`,
+    saveAudio: async (bytes, mime) => `${await origin()}/api/tts/${await audio.save(bytes, episodeId, mime)}`,
     userId,
   };
 };
