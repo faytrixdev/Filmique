@@ -49,10 +49,14 @@
 html {
   height: 100%;
   scroll-behavior: smooth;
+  /* the hero glow bleeds past the container on purpose; clip it without
+     creating a scroll container (which would break position: sticky) */
+  overflow-x: clip;
 }
 
 body {
   min-height: 100%;
+  overflow-x: clip;
   background: var(--ink);
   color: var(--ivory);
   font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
