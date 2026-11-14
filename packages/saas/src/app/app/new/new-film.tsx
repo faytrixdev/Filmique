@@ -23,6 +23,7 @@ import {
   type Tone,
   type World,
 } from '@what-if/engine/settings';
+import { THEMES, THEME_IDS, themeSwatches, type ThemeId } from '@what-if/engine/theme';
 
 // The four-screen creation flow: sujet → réglages → script → récap. Nothing is
 // hidden behind a spinner without a label, and options the renderer cannot do
@@ -461,6 +462,36 @@ export const NewFilm = ({ balanceMicros }: { balanceMicros: number }): React.Rea
 
           <div className="fieldset">
             <div className="fieldset__head">
+              <span className="fieldset__label">Direction visuelle</span>
+              <span className="fieldset__hint">étalonnage, lumière, grain</span>
+            </div>
+            <div className="choice-grid">
+              {THEME_IDS.map((id) => {
+                const t = THEMES[id];
+                const [c1, c2] = themeSwatches(t);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className="choice"
+                    data-on={settings.theme === id}
+                    onClick={() => set('theme', id as ThemeId)}
+                    aria-pressed={settings.theme === id}
+                  >
+                    <span className="choice__swatch" aria-hidden="true">
+                      <span style={{ background: c1 }} />
+                      <span style={{ background: c2 }} />
+                    </span>
+                    <span className="choice__title">{t.name}</span>
+                    <span className="choice__sub">{t.hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="fieldset">
+            <div className="fieldset__head">
               <span className="fieldset__label">Sous-titres</span>
               <span className="fieldset__hint">moteur en préparation</span>
             </div>
@@ -731,6 +762,15 @@ export const NewFilm = ({ balanceMicros }: { balanceMicros: number }): React.Rea
               <span className="recap__k">Ton · rythme</span>
               <span className="recap__v">
                 {TONE_LABEL[settings.tone].title} · {RHYTHM_LABEL[settings.rhythm].title}
+              </span>
+              <button type="button" className="recap__edit" onClick={() => setStep(1)}>
+                Modifier
+              </button>
+            </div>
+            <div className="recap__row">
+              <span className="recap__k">Direction</span>
+              <span className="recap__v">
+                {THEMES[settings.theme].name} · {THEMES[settings.theme].hint}
               </span>
               <button type="button" className="recap__edit" onClick={() => setStep(1)}>
                 Modifier

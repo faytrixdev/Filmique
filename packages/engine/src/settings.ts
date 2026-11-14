@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { THEME_IDS, ThemeIdZ, type ThemeId } from './theme';
 
 // ProjectSettings: every creative decision the user makes before the studio
 // writes a single beat. Stored inside the episode (episode.settings), so the
@@ -21,6 +22,7 @@ export type Narration = (typeof NARRATIONS)[number];
 export type Rhythm = (typeof RHYTHMS)[number];
 export type World = (typeof WORLDS)[number];
 export type Captions = (typeof CAPTIONS)[number];
+export type { ThemeId };
 
 export const ProjectSettingsZ = z.object({
   format: z.enum(FORMATS).default('16:9'),
@@ -29,6 +31,7 @@ export const ProjectSettingsZ = z.object({
   narration: z.enum(NARRATIONS).default('conteur'),
   rhythm: z.enum(RHYTHMS).default('standard'),
   world: z.enum(WORLDS).default('maison'),
+  theme: ThemeIdZ.default('base'),
   captions: z.enum(CAPTIONS).default('none'),
   voiceId: z.string().uuid().optional(),
 });

@@ -198,7 +198,7 @@ export const PasteStack: React.FC<Arch & PasteStackProps> = ({ t, len, item = 'p
 
 // ---------- selectCharacter: over the shoulder, someone waves and the box selects them ----------
 export const selectCharacterZ = z.object({
-  cast: z.enum(['mo', 'suit', 'mom', 'sis']).default('mo'),
+  cast: z.enum(['mo', 'suit', 'mom', 'sis', 'doc', 'ado', 'meme', 'agent']).default('mo'),
   selectAt: z.number().int().nonnegative().default(10),
 });
 export type SelectCharacterProps = z.infer<typeof selectCharacterZ>;
@@ -224,7 +224,7 @@ export const SelectCharacter: React.FC<Arch & SelectCharacterProps> = ({ t, len,
 
 // ---------- copyCharacter: a second copy pops in, they turn and stare at each other ----------
 export const copyCharacterZ = z.object({
-  cast: z.enum(['mo', 'suit', 'mom', 'sis']).default('mo'),
+  cast: z.enum(['mo', 'suit', 'mom', 'sis', 'doc', 'ado', 'meme', 'agent']).default('mo'),
   popAt: z.number().int().nonnegative().default(11),
   turnAt: z.number().int().nonnegative().default(15),
 });
@@ -260,7 +260,7 @@ export const CopyCharacter: React.FC<Arch & CopyCharacterProps> = ({ t, len, cas
 // ---------- uneasyCopies: close-up, the hero uneasy, the copies soft behind ----------
 export const uneasyCopiesZ = z.object({
   copies: z.number().int().min(1).max(3).default(2),
-  cast: z.enum(['mo', 'suit', 'mom', 'sis']).default('mo'),
+  cast: z.enum(['mo', 'suit', 'mom', 'sis', 'doc', 'ado', 'meme', 'agent']).default('mo'),
   startAt: z.number().int().nonnegative().default(16),
 });
 export type UneasyCopiesProps = z.infer<typeof uneasyCopiesZ>;

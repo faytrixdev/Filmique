@@ -134,6 +134,7 @@ export const draftScience = async (script: ScriptDraft, llm: LlmProvider): Promi
 
 export const draftStoryboard = async (input: ComposeInput, script: ScriptDraft, science: ScienceDraft, llm: LlmProvider): Promise<StoryboardDraft> => {
   const { ARCHETYPES } = await import('./archetypes/index');
+  const { LOOKS } = await import('./rig');
   const s = resolveSettings(input.settings);
   const secs = input.durationS ?? s.durationS;
   const sb = await draftStep(llm, StoryboardDraftZ, () =>
@@ -145,6 +146,7 @@ export const draftStoryboard = async (input: ComposeInput, script: ScriptDraft, 
       durationS: secs,
       world: s.world,
       rhythm: s.rhythm,
+      cast: Object.keys(LOOKS),
       ARCHETYPES,
     }).prompt,
   );

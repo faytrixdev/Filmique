@@ -41,6 +41,7 @@ export const storyboardPrompt = (input: {
   durationS?: number;
   world?: World;
   rhythm?: Rhythm;
+  cast?: string[];
   ARCHETYPES: Record<string, unknown>;
 }): { system: string; prompt: string } => {
   const secs = input.durationS ?? 24;
@@ -71,7 +72,7 @@ Pour chaque plan :
 
 « edit » : un point de coupe par plan, { "shot":"S<n>", "at":"<premiers mots du beat couvert>", "look":"..."? } — « look » = mot d'ambiance ; « million », « red » ou « shock » declenchent la colorimétrie spéciale.
 « fx » : liste sparse de { "at":"s:<x>", "kind":"flash"|"shake", "color"?, "o"? }.
-« cast » : sous-liste de pip | pipHood | pipInk | mo | sis | mom | suit.
+« cast » : sous-liste de ${(input.cast ?? ['pip', 'pipHood', 'mo', 'sis', 'mom', 'suit', 'doc', 'ado', 'meme', 'agent']).join(' | ')}.
 « tail » : 0.8 à 1.6 s de respiration finale.
 
 Réponds EXACTEMENT :

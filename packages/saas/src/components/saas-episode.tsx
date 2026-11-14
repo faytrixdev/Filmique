@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { buildShotMap, composeTimeline, Episode, type EpisodeJson } from '@what-if/engine';
+import { themeById } from '@what-if/engine/theme';
 import { synthWords } from '../lib/demo-words';
 import { STUDIO_LOOKS } from '../lib/looks';
 import type { TtsResult } from '../lib/api-tts';
@@ -17,5 +18,6 @@ export const SaaSEpisode: React.FC<{ episode: EpisodeJson; tts: TtsResult | null
   const audio = useMemo(() => (tts ? { voice: tts.audioUrl, voiceVol: 1 } : {}), [tts]);
   const timeline = useMemo(() => composeTimeline(episode, words, { fps: fpsSaaS, audio }), [episode, words, audio]);
   const shots = useMemo(() => buildShotMap(episode), [episode]);
-  return <Episode timeline={timeline} shots={shots} looks={STUDIO_LOOKS} />;
+  const theme = useMemo(() => themeById(episode.settings?.theme), [episode.settings?.theme]);
+  return <Episode timeline={timeline} shots={shots} looks={STUDIO_LOOKS} theme={theme} />;
 };

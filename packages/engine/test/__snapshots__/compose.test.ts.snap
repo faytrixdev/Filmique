@@ -65,6 +65,7 @@ exports[`composeEpisode (whole pipeline, mocked) > keeps science forcasting from
     "format": "16:9",
     "narration": "conteur",
     "rhythm": "standard",
+    "theme": "base",
     "tone": "playful",
     "world": "maison",
   },

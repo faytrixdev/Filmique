@@ -31,7 +31,18 @@ export type Look = {
   hair: string;
   extra?: 'hood' | 'curls' | 'bunches' | 'bob' | 'suit';
 };
-export type CastName = 'pip' | 'pipHood' | 'pipInk' | 'mo' | 'sis' | 'mom' | 'suit';
+export type CastName =
+  | 'pip'
+  | 'pipHood'
+  | 'pipInk'
+  | 'mo'
+  | 'sis'
+  | 'mom'
+  | 'suit'
+  | 'doc'
+  | 'ado'
+  | 'meme'
+  | 'agent';
 export const LOOKS: Record<CastName, Look> = {
   // A: Pip as built
   pip: { skin: C.skin, skinShade: C.skinShade, hand: C.skin, jacket: C.jacket, jacketShade: C.jacketShade, accent: C.jacketShade, limb: C.limb, line: C.ink, shoe: C.shoe, face: C.ink, hair: C.ink },
@@ -44,8 +55,14 @@ export const LOOKS: Record<CastName, Look> = {
   // the formula's recurring cast (beats 5 and 6): Pip's little sister (draw her at about 0.7 of Pip's scale), his mum,
   // and the man in a suit who notices the power. All three are ours: plain shapes, no famous silhouettes.
   sis: { skin: C.skin, skinShade: C.skinShade, hand: C.skin, jacket: '#3E8C86', jacketShade: '#2F6E69', accent: '#F28C6A', limb: '#3A3446', line: '#14121C', shoe: '#F28C6A', face: C.ink, hair: '#3A2620', extra: 'bunches' },
-  mom: { skin: C.skin, skinShade: C.skinShade, hand: C.skin, jacket: '#8A5A6A', jacketShade: '#704858', accent: '#E9C46A', limb: '#3A3446', line: '#14121C', shoe: '#5A4A6A', face: C.ink, hair: '#5A3226', extra: 'bob' },
+  mom: { skin: C.skin, skinShade: C.skinShade, hand: C.skin, jacket: '#8A5A6A', jacketShade: '#704858', accent: '#E9C46A', limb: '#3A3446', line: '#1A1622', shoe: '#5A4A6A', face: C.ink, hair: '#5A3226', extra: 'bob' },
   suit: { skin: '#D9C6AE', skinShade: '#C2AE96', hand: '#D9C6AE', jacket: '#2B2F3A', jacketShade: '#20232C', accent: '#A8323E', limb: '#2B2F3A', line: '#0E0F14', shoe: '#14151A', face: C.ink, hair: '#17141A', extra: 'suit' },
+  // the second cast, so two episodes never share the same faces: a doctor in a white coat,
+  // a teenager in a red tee, a grandmother in lilac, a city agent in navy.
+  doc: { skin: '#E8D3B4', skinShade: '#CBAE8C', hand: '#E8D3B4', jacket: '#EDE8DE', jacketShade: '#CFC8BA', accent: '#3E8C86', limb: '#3A3446', line: '#1A1622', shoe: '#2B2F3A', face: C.ink, hair: '#3A3128', extra: 'suit' },
+  ado: { skin: '#D9A879', skinShade: '#B8895C', hand: '#D9A879', jacket: '#C64B3C', jacketShade: '#9E3A2E', accent: '#F2B33D', limb: '#D9A879', line: '#231318', shoe: '#EDE8DE', face: '#231318', hair: '#2B1A18' },
+  meme: { skin: '#EBD9C4', skinShade: '#CEB79E', hand: '#EBD9C4', jacket: '#9B8AC4', jacketShade: '#7C6BA5', accent: '#E9C46A', limb: '#9B8AC4', line: '#241F33', shoe: '#5A4A6A', face: '#241F33', hair: '#C9C4B8', extra: 'bob' },
+  agent: { skin: '#C98E68', skinShade: '#B07A58', hand: '#C98E68', jacket: '#26324F', jacketShade: '#1B2540', accent: '#C9A227', limb: '#26324F', line: '#10131F', shoe: '#12141C', face: '#10131F', hair: '#1B1613', extra: 'suit' },
 };
 
 // ---------- the hero ----------

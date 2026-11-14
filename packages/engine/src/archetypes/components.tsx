@@ -733,7 +733,7 @@ export const SchematicBar: React.FC<Arch & SchematicBarProps> = ({ t, title, uni
 
 // ---------- arrivalWalk (S15): the wide low angle, a figure walks out of the dusk ----------
 export const arrivalWalkZ = z.object({
-  cast: z.enum(['suit', 'mo', 'sis', 'mom']).default('suit'),
+  cast: z.enum(['suit', 'mo', 'sis', 'mom', 'doc', 'ado', 'meme', 'agent']).default('suit'),
   chip: z.boolean().default(true),
   expression: z.enum(['worried', 'neutral']).default('worried'),
 });

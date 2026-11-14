@@ -131,6 +131,7 @@ describe('project settings', () => {
       narration: 'conteur',
       rhythm: 'standard',
       world: 'maison',
+      theme: 'base',
       captions: 'none',
     });
   });
@@ -150,6 +151,29 @@ describe('project settings', () => {
     expect(episode.settings?.durationS).toBe(45);
     expect(episode.settings?.tone).toBe('tense');
     expect(episode.sound.music.clip).toBe('tense');
+  });
+
+  it('the film look is stored with the episode', async () => {
+    const { episode } = await composeEpisode(
+      { topic: 'Et si le pain tombait du ciel ?', settings: { theme: 'nuit' } },
+      mockSteps(SCRIPT_JSON, SCIENCE_JSON, STORYBOARD_JSON),
+    );
+    expect(episode.settings?.theme).toBe('nuit');
+  });
+
+  it('the second cast survives the storyboard gate', async () => {
+    const sb: StoryboardDraft = {
+      cast: ['doc', 'ado', 'meme', 'agent'],
+      shots: [
+        { id: 'S1', size: 'wide', set: 'kitchen', key: 30, note: 'a', archetype: 'wideRoom', archetypeProps: {} },
+        { id: 'S2', size: 'wide', set: 'kitchen', key: 30, note: 'b', archetype: 'wideRoom', archetypeProps: {} },
+      ],
+      edit: [{ shot: 'S1', at: 'un' }],
+      fx: [],
+      tail: 1,
+    };
+    const adapted = await adaptStoryboard(sb);
+    expect(adapted.cast).toEqual(['doc', 'ado', 'meme', 'agent']);
   });
 });
 

@@ -1453,3 +1453,16 @@ h3.display {
     grid-row: 2;
   }
 }
+
+.choice__swatch {
+  display: flex;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  margin-bottom: 0.3rem;
+}
+
+.choice__swatch > span {
+  flex: 1;
+}

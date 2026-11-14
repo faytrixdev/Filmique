@@ -3,6 +3,7 @@ import { AbsoluteFill, Audio, staticFile, useCurrentFrame } from 'remotion';
 import { clamp, lerp } from './anim';
 import { KitDefs } from './kit';
 import { SetDefs } from './light';
+import type { ThemeDef } from './theme';
 
 /** Media sources: local files go through staticFile(), remote URLs (TTS audio
  * served by the API) are passed through untouched - staticFile rejects them. */
@@ -87,22 +88,47 @@ const fxAt = (tl: Timeline, f: number) => {
 };
 
 /** Vignette and a fine grain that changes on twos, to take the vector edge off (the genre's finish). */
-const Grade: React.FC<{ f: number; grain: boolean; vignette: boolean }> = ({ f, grain, vignette }) => (
+const Grade: React.FC<{ f: number; grain: boolean; vignette: boolean; grainAmount?: number; vignetteAmount?: number }> = ({
+  f,
+  grain,
+  vignette,
+  grainAmount = 0.06,
+  vignetteAmount = 0.55,
+}) => (
   <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
     <defs>
       <radialGradient id="epVig" cx="50%" cy="50%" r="75%">
         <stop offset="55%" stopColor="#000" stopOpacity={0} />
-        <stop offset="100%" stopColor="#000" stopOpacity={0.55} />
+        <stop offset="100%" stopColor="#000" stopOpacity={vignetteAmount} />
       </radialGradient>
       <filter id="epGrain" x="0" y="0" width="100%" height="100%">
         <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves={2} seed={Math.floor(f / 2) % 97} />
-        <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0" />
+        <feColorMatrix type="matrix" values={`0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 ${grainAmount} 0`} />
       </filter>
     </defs>
-    {vignette ? <rect width="1920" height="1080" fill="url(#epVig)" /> : null}
-    {grain ? <rect width="1920" height="1080" filter="url(#epGrain)" /> : null}
+    {vignette ? <rect width={1920} height={1080} fill="url(#epVig)" /> : null}
+    {grain ? <rect width={1920} height={1080} filter="url(#epGrain)" /> : null}
   </svg>
 );
+
+/** The theme's light wash: two colours laid over the picture, soft-light so the
+ * drawing keeps its contrast and only changes temperature. */
+const Wash: React.FC<{ theme: ThemeDef }> = ({ theme }) => {
+  const wash = theme.wash;
+  if (!wash) return null;
+  const id = `epWash-${theme.id}`;
+  return (
+    <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={wash.top} />
+          <stop offset="100%" stopColor={wash.bottom} />
+        </linearGradient>
+      </defs>
+      <rect width={1920} height={1080} fill={`url(#${id})`} opacity={wash.alpha} style={{ mixBlendMode: 'soft-light' }} />
+    </svg>
+  );
+};
 
 /** One shot drawn in the shared defs (filters, gradients), in a 1920 x 1080 world. */
 export const ShotFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -113,9 +139,29 @@ export const ShotFrame: React.FC<{ children: React.ReactNode }> = ({ children })
   </svg>
 );
 
-export type EpisodeProps = { timeline: Timeline; shots: ShotMap; looks?: Record<string, LookDef>; grain?: boolean; vignette?: boolean; bg?: string };
+/** The picture filter: the theme's grade, then the power look's grade on top. */
+export const pictureFilter = (theme: ThemeDef | undefined, lookGrade?: string): string =>
+  [theme?.grade, lookGrade].filter(Boolean).join(' ');
 
-export const Episode: React.FC<EpisodeProps> = ({ timeline: tl, shots, looks = {}, grain = true, vignette = true, bg = '#0E0C1E' }) => {
+export type EpisodeProps = {
+  timeline: Timeline;
+  shots: ShotMap;
+  looks?: Record<string, LookDef>;
+  grain?: boolean;
+  vignette?: boolean;
+  bg?: string;
+  theme?: ThemeDef;
+};
+
+export const Episode: React.FC<EpisodeProps> = ({
+  timeline: tl,
+  shots,
+  looks = {},
+  grain = true,
+  vignette = true,
+  bg,
+  theme,
+}) => {
   const f = useCurrentFrame();
   const seg = segAt(tl, f);
   const Shot = shots[seg.shot];
@@ -126,12 +172,15 @@ export const Episode: React.FC<EpisodeProps> = ({ timeline: tl, shots, looks = {
   const jitter = def?.jitter && lv > 0 ? Math.sin(f * 13.7) * def.jitter * lv : 0;
   const { flash, x, y } = fxAt(tl, f);
   const A = tl.audio;
+  const stageBg = theme?.bg ?? bg ?? '#0E0C1E';
+  const filters = pictureFilter(theme, def?.grade && lv > 0 ? def.grade(lv) : undefined);
   return (
-    <AbsoluteFill style={{ backgroundColor: bg }}>
-      <AbsoluteFill style={{ transform: `translate(${x + jitter}px, ${y}px) scale(${x || y ? 1.02 : 1})`, filter: def?.grade && lv > 0 ? def.grade(lv) : undefined }}>
+    <AbsoluteFill style={{ backgroundColor: stageBg }}>
+      <AbsoluteFill style={{ transform: `translate(${x + jitter}px, ${y}px) scale(${x || y ? 1.02 : 1})`, filter: filters || undefined }}>
         <ShotFrame>{Shot ? <Shot t={clockAt(seg, f)} len={info?.len ?? seg.b - seg.a} f={f} /> : null}</ShotFrame>
       </AbsoluteFill>
-      <Grade f={f} grain={grain} vignette={vignette} />
+      {theme ? <Wash theme={theme} /> : null}
+      <Grade f={f} grain={grain} vignette={vignette} grainAmount={theme?.grain} vignetteAmount={theme?.vignette} />
       {def?.Overlay && run ? (
         <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{ position: 'absolute', inset: 0, opacity: lv }}>
           <def.Overlay f={f} lv={lv} p={clamp((f - run.a) / (run.b - run.a))} n={run.n} />
@@ -146,14 +195,24 @@ export const Episode: React.FC<EpisodeProps> = ({ timeline: tl, shots, looks = {
 };
 
 /** The storyboard: frame i is shot i at its key frame, no audio, no look. Render it with scripts/stills.mjs. */
-export const Board: React.FC<{ timeline: Timeline; shots: ShotMap; grain?: boolean; vignette?: boolean; bg?: string }> = ({ timeline: tl, shots, grain = true, vignette = true, bg = '#0E0C1E' }) => {
+export const Board: React.FC<{
+  timeline: Timeline;
+  shots: ShotMap;
+  grain?: boolean;
+  vignette?: boolean;
+  bg?: string;
+  theme?: ThemeDef;
+}> = ({ timeline: tl, shots, grain = true, vignette = true, bg, theme }) => {
   const f = useCurrentFrame();
   const info = tl.shots[Math.min(f, tl.shots.length - 1)];
   const Shot = shots[info.id];
   return (
-    <AbsoluteFill style={{ backgroundColor: bg }}>
-      <ShotFrame>{Shot ? <Shot t={info.key} len={info.len} f={info.first + info.key} /> : null}</ShotFrame>
-      <Grade f={info.key} grain={grain} vignette={vignette} />
+    <AbsoluteFill style={{ backgroundColor: theme?.bg ?? bg ?? '#0E0C1E' }}>
+      <AbsoluteFill style={{ filter: theme?.grade || undefined }}>
+        <ShotFrame>{Shot ? <Shot t={info.key} len={info.len} f={info.first + info.key} /> : null}</ShotFrame>
+      </AbsoluteFill>
+      {theme ? <Wash theme={theme} /> : null}
+      <Grade f={info.key} grain={grain} vignette={vignette} grainAmount={theme?.grain} vignetteAmount={theme?.vignette} />
     </AbsoluteFill>
   );
 };
@@ -164,6 +223,6 @@ export const defineEpisode = (id: string, p: EpisodeProps) => ({
   total: p.timeline.total,
   shotCount: p.timeline.shots.length,
   Main: () => <Episode {...p} />,
-  Board: () => <Board timeline={p.timeline} shots={p.shots} grain={p.grain} vignette={p.vignette} bg={p.bg} />,
+  Board: () => <Board timeline={p.timeline} shots={p.shots} grain={p.grain} vignette={p.vignette} bg={p.bg} theme={p.theme} />,
 });
 export type EpisodeDef = ReturnType<typeof defineEpisode>;

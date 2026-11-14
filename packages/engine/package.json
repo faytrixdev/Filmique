@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
     "./settings": "./src/settings.ts",
+    "./theme": "./src/theme.ts",
     "./compose": "./src/compose.ts",
     "./archetypes": "./src/archetypes/index.ts",
     "./compose-mock": "./src/compose-mock.ts",
