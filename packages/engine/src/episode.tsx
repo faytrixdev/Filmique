@@ -4,6 +4,11 @@ import { clamp, lerp } from './anim';
 import { KitDefs } from './kit';
 import { SetDefs } from './light';
 
+/** Media sources: local files go through staticFile(), remote URLs (TTS audio
+ * served by the API) are passed through untouched - staticFile rejects them. */
+export const mediaSrc = (src: string): string =>
+  /^https?:\/\//.test(src) ? src : staticFile(src);
+
 // The episode engine. An episode is a set of shots plus a timeline (written by scripts/plan.py from the voice's word
 // timings). Each shot is a pure function of its own clock t, so the edit can cut back to a shot, hold it, or play it
 // backwards: a segment just says which stretch of the shot's clock it shows.
@@ -133,9 +138,9 @@ export const Episode: React.FC<EpisodeProps> = ({ timeline: tl, shots, looks = {
         </svg>
       ) : null}
       {flash ? <AbsoluteFill style={{ backgroundColor: flash.color, opacity: flash.o }} /> : null}
-      {A.voice ? <Audio src={staticFile(A.voice)} volume={A.voiceVol ?? 1} /> : null}
-      {A.sfx ? <Audio src={staticFile(A.sfx)} volume={A.sfxVol ?? 1} /> : null}
-      {A.music ? <Audio src={staticFile(A.music)} volume={A.musicVol ?? 1} /> : null}
+      {A.voice ? <Audio src={mediaSrc(A.voice)} volume={A.voiceVol ?? 1} /> : null}
+      {A.sfx ? <Audio src={mediaSrc(A.sfx)} volume={A.sfxVol ?? 1} /> : null}
+      {A.music ? <Audio src={mediaSrc(A.music)} volume={A.musicVol ?? 1} /> : null}
     </AbsoluteFill>
   );
 };
