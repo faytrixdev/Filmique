@@ -526,6 +526,10 @@ h3.display {
   gap: 1rem;
 }
 
+.episodes--fill {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
 .episode-card {
   display: flex;
   flex-direction: column;

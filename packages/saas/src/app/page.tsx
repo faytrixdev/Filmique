@@ -97,7 +97,7 @@ export default function Home(): React.ReactElement {
               d’hypothèse que le studio sait filmer.
             </p>
           </div>
-          <div className="episodes">
+          <div className="episodes episodes--fill">
             {samples.map((sample) => (
               <article className="poster" key={sample.kicker}>
                 <div className="poster__kicker">{sample.kicker}</div>
