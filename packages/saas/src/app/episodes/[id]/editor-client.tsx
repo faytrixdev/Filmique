@@ -357,7 +357,7 @@ export default function EditorClient({
                   >
                     {Object.keys(MUSIC).map((tone) => (
                       <option key={tone} value={tone}>
-                        {tone} — {MUSIC[tone][0].slice(0, 40)}
+                        {tone} — {MUSIC[tone][0].split(/\s+/).slice(0, 4).join(' ')}
                       </option>
                     ))}
                   </select>

@@ -692,6 +692,10 @@ h3.display {
 .shot__meta {
   font-size: 0.72rem;
   color: var(--faint);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* --- status line --------------------------------------------------------- */
