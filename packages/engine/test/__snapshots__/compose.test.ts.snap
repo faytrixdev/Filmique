@@ -59,6 +59,15 @@ exports[`composeEpisode (whole pipeline, mocked) > keeps science forcasting from
       "text": "Mairie? elle taxe le pain?",
     },
   ],
+  "settings": {
+    "captions": "none",
+    "durationS": 24,
+    "format": "16:9",
+    "narration": "conteur",
+    "rhythm": "standard",
+    "tone": "playful",
+    "world": "maison",
+  },
   "shots": [
     {
       "archetype": "titleReveal",

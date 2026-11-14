@@ -1,4 +1,5 @@
 import { DIRECTOR_SYSTEM } from './system';
+import { WORLD_SETS, RHYTHM, type World, type Rhythm } from '../settings';
 
 // The storyboard is the only step that must speak the archetype catalogue: the whitelist
 // below is generated from the live registry so prompts and code can never drift apart.
@@ -38,10 +39,14 @@ export const storyboardPrompt = (input: {
   script: { beat: string; text: string }[];
   science: { claim: string }[];
   durationS?: number;
+  world?: World;
+  rhythm?: Rhythm;
   ARCHETYPES: Record<string, unknown>;
 }): { system: string; prompt: string } => {
   const secs = input.durationS ?? 24;
   const frames = Math.round(secs * 30);
+  const sets = WORLD_SETS[input.world ?? 'maison'];
+  const [minShots, maxShots] = RHYTHM[input.rhythm ?? 'standard'].shots;
   return {
     system: DIRECTOR_SYSTEM,
     prompt: `Sujet : ${input.topic}
@@ -51,14 +56,14 @@ ${input.script.map((b) => `[${b.beat}] ${b.text}`).join('\n')}
 Soutiens scientifiques :
 ${input.science.map((s) => `- ${s.claim}`).join('\n')}
 
-Découpe le script en 8 à 16 plans, durée totale ≈ ${frames} frames (30 fps, tolérance ±15 %).
+Découpe le script en ${minShots} à ${maxShots} plans, durée totale ≈ ${frames} frames (30 fps, tolérance ±15 %).
 Catalogue d'archetypes — SEULS CES NOMS SONT AUTORISÉS, avec le TYPE EXACT de chaque prop (toutes optionnelles sauf celles notées *) :
 ${archWhitelist(input.ARCHETYPES)}
 TYPES STRICTS : un nombre s'écrit en JSON nombre (92, jamais "92"), un booléen en true/false (jamais "true"), une enum EXACTEMENT une des valeurs listées, une tuple[2 strings] = un tableau de 2 chaînes (le titre, le sous-titre).
 
 Pour chaque plan :
 - « size » : une courte description de cadrage ("wide", "medium", "macro insert", "close-up", "schematic", "title, wide", ...)
-- « set » : kitchen | study | classroom | rooftop | schematic | bedroom
+- « set » : ${sets.join(' | ')}
 - « key » : durée du plan en frames (8 à 80)
 - « note » : une phrase d'intent (français)
 - « archetype » + « archetypeProps » : valide contre le catalogue ci-dessus (props par défaut très bien tolérées)

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ProjectSettingsZ } from './settings';
 
 // An anchor resolves to a moment in the film. Three grammars, all seen in the studio
 // episodes: "f:44" (frame), "s:2.82" (seconds, at the shot's own clock resolution),
@@ -95,6 +96,7 @@ export const EpisodeJsonZ = z.object({
   title: z.array(z.string().min(1)).min(1).max(2),
   accent: z.string().optional(),
   power: PowerZ.optional(),
+  settings: ProjectSettingsZ.optional(),
   script: z.array(ScriptBeatZ).min(1),
   science: z.array(ScienceZ).default([]),
   voice: VoiceZ.optional(),

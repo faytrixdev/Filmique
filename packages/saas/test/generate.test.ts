@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { generateEpisode } from '../src/lib/generate-flow';
 import { postGenerate } from '../src/lib/api-generate';
+import { draftScriptFor, rewriteBeat } from '../src/lib/script-flow';
 import { MockLlmProvider } from '@what-if/engine/providers/llm';
-import { composeMockQueue } from '@what-if/engine/compose-mock';
+import { composeMockQueue, SCRIPT_JSON, SCIENCE_JSON, STORYBOARD_JSON } from '@what-if/engine/compose-mock';
 import type { EpisodeRepo, EpisodeRow } from '../src/lib/episodes';
 
 const epRepo = (): EpisodeRepo & { rows: Map<string, EpisodeRow> } => {
@@ -71,6 +72,84 @@ describe('generateEpisode', () => {
     const res = await generateEpisode({ repo: epRepo(), userId: 'u1' }, bad, { topic: 'Et si Internet s’arrêtait 24 heures ?' });
     expect(res.status).toBe(502);
   });
+
+  it('a validated script skips the script draft and lands in the episode', async () => {
+    const repo = epRepo();
+    // Only science + storyboard are queued: a script draft would break the queue.
+    const res = await generateEpisode({ repo, userId: 'u1' }, new MockLlmProvider([SCIENCE_JSON, STORYBOARD_JSON]), {
+      topic: 'Et si le pain tombait du ciel ?',
+      script: {
+        title: ['LE PAIN', 'TOMBE'],
+        script: [
+          { beat: 'hook', text: 'Une averse éclate au-dessus de la ville.' },
+          { beat: 'premise', text: 'Le pain pousse sur les toits depuis ce matin.' },
+          { beat: 'twist', text: 'Il faudrait 1 000 averses pour nourrir un immeuble.' },
+          { beat: 'question', text: 'Mairie? elle taxe le pain?' },
+        ],
+      },
+    });
+    expect(res.status).toBe(201);
+    if (res.status !== 201) return;
+    expect(res.row.episode.script[0].text).toContain('averse');
+    expect(res.row.episode.title.join(' ')).toContain('PAIN');
+  });
+
+  it('a malformed script is refused before any LLM call', async () => {
+    const repo = epRepo();
+    const res = await generateEpisode({ repo, userId: 'u1' }, llm(), {
+      topic: 'Et si le pain tombait du ciel ?',
+      script: { title: ['X'], script: [{ beat: 'hook' }] },
+    });
+    expect(res).toMatchObject({ status: 400, error: 'bad_script' });
+    expect(repo.rows.size).toBe(0);
+  });
+
+  it('the settings are stored with the episode', async () => {
+    const repo = epRepo();
+    const res = await generateEpisode({ repo, userId: 'u1' }, llm(), {
+      topic: 'Et si le pain tombait du ciel ?',
+      settings: { durationS: 45, world: 'urbain', tone: 'tense', narration: 'prof', rhythm: 'nerveux' },
+    });
+    expect(res.status).toBe(201);
+    if (res.status !== 201) return;
+    expect(res.row.episode.settings).toMatchObject({
+      durationS: 45,
+      world: 'urbain',
+      tone: 'tense',
+      narration: 'prof',
+      rhythm: 'nerveux',
+      format: '16:9',
+    });
+  });
+});
+
+describe('script-first flow', () => {
+  it('draftScriptFor returns the beats alone, with no storyboard', async () => {
+    const res = await draftScriptFor(new MockLlmProvider([SCRIPT_JSON]), { topic: 'Et si le pain tombait du ciel ?' });
+    expect(res.status).toBe(200);
+    if (res.status !== 200) return;
+    expect(res.script.script.length).toBeGreaterThanOrEqual(4);
+    expect(res.script.title.join(' ')).toContain('PAIN');
+  });
+
+  it('draftScriptFor refuses a short topic and a missing provider', async () => {
+    expect(await draftScriptFor(new MockLlmProvider([SCRIPT_JSON]), { topic: 'court' })).toMatchObject({ status: 400 });
+    expect(await draftScriptFor(null, { topic: 'Et si les chats parlaient enfin ?' })).toMatchObject({ status: 503 });
+  });
+
+  it('rewriteBeat returns three variants of the beat', async () => {
+    const llm = new MockLlmProvider([
+      JSON.stringify({ variants: ['Plus court.', 'Plus incarné.', 'Plus tranchant.'] }),
+    ]);
+    const res = await rewriteBeat(llm, { text: 'Une averse éclate au-dessus de la ville.', topic: 'Et si le pain tombait du ciel ?' });
+    expect(res.status).toBe(200);
+    if (res.status !== 200) return;
+    expect(res.variants).toHaveLength(3);
+  });
+
+  it('rewriteBeat refuses an empty beat', async () => {
+    expect(await rewriteBeat(llm(), { text: '' })).toMatchObject({ status: 400 });
+  });
 });
 
 describe('POST /api/episodes/generate (pure HTTP layer)', () => {
@@ -88,5 +167,15 @@ describe('POST /api/episodes/generate (pure HTTP layer)', () => {
     expect((await postGenerate({ repo: epRepo(), userId: null, llm: llm() }, req({ topic: 'Et si les chats parlaient enfin ?' }))).status).toBe(401);
     expect((await postGenerate({ repo: epRepo(), userId: 'u1', llm: llm() }, req({ tone: 'no topic' }))).status).toBe(400);
     expect((await postGenerate({ repo: epRepo(), userId: 'u1', llm: null }, req({ topic: 'Et si les chats parlaient enfin ?' }))).status).toBe(503);
+  });
+
+  it('malformed settings are refused, missing settings fall back to the defaults', async () => {
+    expect((await postGenerate({ repo: epRepo(), userId: 'u1', llm: llm() }, req({ topic: 'Et si le pain tombait du ciel ?', settings: { durationS: 'long' } }))).status).toBe(400);
+
+    const repo = epRepo();
+    const res = await postGenerate({ repo, userId: 'u1', llm: llm() }, req({ topic: 'Et si le pain tombait du ciel ?' }));
+    expect(res.status).toBe(201);
+    const row = [...repo.rows.values()][0];
+    expect(row.episode.settings).toMatchObject({ durationS: 24, format: '16:9', world: 'maison' });
   });
 });

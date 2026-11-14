@@ -9,6 +9,7 @@ export * from './furnish';
 export * from './ui';
 export * from './fonts';
 export * from './schema';
+export * from './settings';
 export * from './providers';
 export * from './compose';
 export * from './prompts/system';

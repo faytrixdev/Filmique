@@ -2,11 +2,12 @@ import { z } from 'zod';
 import { extractJson, type LlmProvider } from './providers';
 import { LlmRateLimitError } from './providers/llm';
 import { EpisodeJsonZ, FxZ, PowerZ, EditZ, ScriptBeatZ, ScienceZ, ShotZ, VoiceZ, type EpisodeJson } from './schema';
-import { scriptPrompt } from './prompts/script';
+import { scriptPrompt, rewritePrompt } from './prompts/script';
 import { sciencePrompt } from './prompts/science';
 import { storyboardPrompt } from './prompts/storyboard';
 import { DIRECTOR_SYSTEM } from './prompts/system';
 import { soundRules } from './sound/rules';
+import { resolveSettings, type Narration, type ProjectSettings } from './settings';
 
 // composeEpisode: the four knobs in one call —
 //   1. draftScript      (LLM)   the hook → premise → numbered twist → looming question
@@ -26,6 +27,7 @@ export type ComposeInput = {
   voiceId?: string;
   id?: string;
   slug?: string;
+  settings?: Partial<ProjectSettings>;
 };
 
 export type EpisodeDraft = { episode: EpisodeJson };
@@ -42,8 +44,7 @@ export const ScienceDraftObjZ = z.object({ science: z.array(ScienceZ).max(8) });
 export const ScienceDraftZ = ScienceDraftObjZ.transform((d) => d.science);
 export type ScienceDraft = z.infer<typeof ScienceDraftZ>;
 
-export const StoryboardDraftZ = z.object({
-  cast: z.array(z.string()).default([]),
+export const StoryboardDraftZ = z.object({  cast: z.array(z.string()).default([]),
   shots: z.array(ShotZ).min(4).max(20),
   edit: z.array(EditZ).default([]),
   fx: z.array(FxZ).default([]),
@@ -98,17 +99,28 @@ export const draftScript = async (input: ComposeInput, llm: LlmProvider): Promis
   // Length belongs to the validated schema, not a post-check: a too-short or
   // too-long draft re-enters the retry loop with the exact char budget instead
   // of killing the whole compose.
-  const secs = input.durationS ?? 24;
+  const s = resolveSettings(input.settings);
+  const secs = input.durationS ?? s.durationS;
   const target = Math.round(secs * 8.5);
   const zod = ScriptDraftZ.refine((sc) => {
     const chars = scriptChars(sc);
     return chars >= target * 0.65 && chars <= target * 1.4;
   }, { message: `script length must total ~${target} chars (${Math.round(target * 0.65)}-${Math.round(target * 1.4)}), écris plus court` });
-  return draftStep(llm, zod, () => scriptPrompt(input).prompt);
+  return draftStep(llm, zod, () =>
+    scriptPrompt({ topic: input.topic, tone: input.tone ?? s.tone, durationS: secs, narration: s.narration }).prompt,
+  );
 };
 
-export const draftScience = async (script: ScriptDraft, llm: LlmProvider): Promise<ScienceDraft> => {
-  // The digits check lives in the validated schema: an empty science with
+// One beat, three variants: same retry loop, same JSON discipline as compose.
+export const RewriteDraftZ = z.object({ variants: z.array(z.string().min(1).max(400)).min(1).max(3) });
+export type RewriteDraft = z.infer<typeof RewriteDraftZ>;
+
+export const rewriteBeatDraft = (
+  input: { text: string; topic: string; instruction?: string; narration?: Narration; budget: number },
+  llm: LlmProvider,
+): Promise<RewriteDraft> => draftStep(llm, RewriteDraftZ, () => rewritePrompt(input));
+
+export const draftScience = async (script: ScriptDraft, llm: LlmProvider): Promise<ScienceDraft> => {  // The digits check lives in the validated schema: an empty science with
   // quoted figures re-enters the retry loop instead of killing the compose.
   const digits = script.script.some((b) => /\d/.test(b.text));
   const zod = digits
@@ -122,10 +134,21 @@ export const draftScience = async (script: ScriptDraft, llm: LlmProvider): Promi
 
 export const draftStoryboard = async (input: ComposeInput, script: ScriptDraft, science: ScienceDraft, llm: LlmProvider): Promise<StoryboardDraft> => {
   const { ARCHETYPES } = await import('./archetypes/index');
+  const s = resolveSettings(input.settings);
+  const secs = input.durationS ?? s.durationS;
   const sb = await draftStep(llm, StoryboardDraftZ, () =>
-    storyboardPrompt({ topic: input.topic, title: script.title, script: script.script, science, durationS: input.durationS, ARCHETYPES }).prompt,
+    storyboardPrompt({
+      topic: input.topic,
+      title: script.title,
+      script: script.script,
+      science,
+      durationS: secs,
+      world: s.world,
+      rhythm: s.rhythm,
+      ARCHETYPES,
+    }).prompt,
   );
-  return adaptStoryboard(sb, input.durationS);
+  return adaptStoryboard(sb, secs);
 };
 
 // ---------- deterministic adaptation (the SaaS ceiling: zero Zod surprises out) ----------
@@ -331,8 +354,14 @@ export const draftSound = (sb: StoryboardDraft, tone?: string): EpisodeJson['sou
 
 // ---------- whole pipeline ----------
 
-export const composeEpisode = async (input: ComposeInput, llm: LlmProvider): Promise<EpisodeDraft> => {
-  const script = await draftScript(input, llm);
+/** Phase 1 of the script-first flow: the script alone, before any mise en scène. */
+export const composeScript = (input: ComposeInput, llm: LlmProvider): Promise<ScriptDraft> =>
+  draftScript(input, llm);
+
+/** Phase 2: a validated script becomes a full episode (science → shots → sound). */
+export const composeFromScript = async (input: ComposeInput, script: ScriptDraft, llm: LlmProvider): Promise<EpisodeDraft> => {
+  const s = resolveSettings(input.settings);
+  const voiceId = input.voiceId ?? s.voiceId;
   const science = await draftScience(script, llm);
   const sb = await draftStoryboard(input, script, science, llm);
 
@@ -343,17 +372,21 @@ export const composeEpisode = async (input: ComposeInput, llm: LlmProvider): Pro
     title: script.title,
     accent: script.accent,
     power: script.power,
+    settings: s,
     script: script.script,
     science,
-    voice: input.voiceId
-      ? VoiceZ.parse({ id: input.voiceId, model: 'cartesia-sonic-2', settings: { stability: 0.5, similarity_boost: 0.75 } })
+    voice: voiceId
+      ? VoiceZ.parse({ id: voiceId, model: 'cartesia-sonic-2', settings: { stability: 0.5, similarity_boost: 0.75 } })
       : undefined,
     cast: sb.cast.length ? sb.cast : ['pipHood'],
     shots: sb.shots,
     edit: sb.edit,
     tail: sb.tail,
     fx: sb.fx,
-    sound: draftSound(sb, input.tone),
+    sound: draftSound(sb, input.tone ?? s.tone),
   });
   return { episode };
 };
+
+export const composeEpisode = async (input: ComposeInput, llm: LlmProvider): Promise<EpisodeDraft> =>
+  composeFromScript(input, await composeScript(input, llm), llm);

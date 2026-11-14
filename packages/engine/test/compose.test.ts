@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { MockLlmProvider, extractJson } from '../src/providers';
 import { EpisodeJsonZ } from '../src/schema';
 import { CLIPS, MUSIC } from '../src/sound/clips';
-import { composeEpisode, draftScript, draftScience, draftSound, ScriptDraftZ, ScriptDraft, adaptStoryboard, StoryboardDraftZ, type StoryboardDraft } from '../src/compose';
+import { composeEpisode, composeScript, composeFromScript, draftScript, draftScience, draftSound, ScriptDraftZ, ScriptDraft, adaptStoryboard, StoryboardDraftZ, type StoryboardDraft } from '../src/compose';
+import { resolveSettings } from '../src/settings';
 import { SCRIPT_JSON, SCIENCE_JSON, STORYBOARD_JSON } from '../src/compose-mock';
 
 const mockSteps = (...jsons: string[]) => new MockLlmProvider(jsons);
@@ -118,5 +119,52 @@ describe('composeEpisode (whole pipeline, mocked)', () => {
   it('keeps science forcasting from unlikely claims out (snapshot)', async () => {
     const { episode } = await composeEpisode({ topic: 'Et si le pain tombait du ciel ?', tone: 'playful' }, mockSteps(SCRIPT_JSON, SCIENCE_JSON, STORYBOARD_JSON));
     expect(episode).toMatchSnapshot();
+  });
+});
+
+describe('project settings', () => {
+  it('fills the defaults for an episode written without settings', () => {
+    expect(resolveSettings()).toEqual({
+      format: '16:9',
+      durationS: 24,
+      tone: 'playful',
+      narration: 'conteur',
+      rhythm: 'standard',
+      world: 'maison',
+      captions: 'none',
+    });
+  });
+
+  it('keeps the user values and drops the unknown ones', () => {
+    const s = resolveSettings({ durationS: 45, world: 'urbain', nope: true } as never);
+    expect(s.durationS).toBe(45);
+    expect(s.world).toBe('urbain');
+    expect((s as Record<string, unknown>).nope).toBeUndefined();
+  });
+
+  it('the episode carries the settings, and the duration drives the script budget', async () => {
+    const { episode } = await composeEpisode(
+      { topic: 'Et si le pain tombait du ciel ?', settings: { durationS: 45, tone: 'tense' } },
+      mockSteps(SCRIPT_JSON, SCIENCE_JSON, STORYBOARD_JSON),
+    );
+    expect(episode.settings?.durationS).toBe(45);
+    expect(episode.settings?.tone).toBe('tense');
+    expect(episode.sound.music.clip).toBe('tense');
+  });
+});
+
+describe('script-first compose', () => {
+  it('phase 1 returns the beats only, phase 2 turns them into an episode', async () => {
+    const script = await composeScript({ topic: 'Et si le pain tombait du ciel ?' }, mockSteps(SCRIPT_JSON));
+    expect(script.script.length).toBeGreaterThanOrEqual(4);
+
+    const { episode } = await composeFromScript(
+      { topic: 'Et si le pain tombait du ciel ?' },
+      script,
+      mockSteps(SCIENCE_JSON, STORYBOARD_JSON),
+    );
+    expect(episode.script).toEqual(script.script);
+    expect(episode.shots.length).toBe(6);
+    expect(EpisodeJsonZ.safeParse(episode).success).toBe(true);
   });
 });

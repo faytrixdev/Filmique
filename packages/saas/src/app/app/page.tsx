@@ -2,13 +2,13 @@ import React, { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
+import Link from 'next/link';
 import { authSecret, readRequestSession, SESSION_COOKIE } from '@/lib/auth';
 import { getDb } from '@/db';
 import { drizzleEpisodeRepo } from '@/db/episodes-repo';
 import { drizzleCreditRepo } from '@/db/credits-repo';
 import { logoutAction } from '@/app/actions/auth';
-import { Brand, Grain } from '@/components/brand';
-import { GenerateForm } from './generate-form';
+import { ArrowIcon, Brand, Grain } from '@/components/brand';
 
 const STATUS: Record<string, { label: string; className: string }> = {
   draft: { label: 'Brouillon', className: 'pill--draft' },
@@ -66,7 +66,18 @@ async function Dashboard(): Promise<React.ReactElement> {
         </div>
 
         <div style={{ marginTop: '1.75rem' }}>
-          <GenerateForm />
+          <div className="card card--pad" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="stack" style={{ gap: '0.3rem', flex: '1 1 320px' }}>
+              <span className="card__label">Nouvelle hypothèse</span>
+              <p className="note" style={{ fontSize: '0.92rem' }}>
+                Sujet, réglages, script relu par vous, puis mise en scène. Quatre étapes, aucune corvée.
+              </p>
+            </div>
+            <Link className="btn btn--primary btn--lg" href="/app/new">
+              Créer un film
+              <ArrowIcon />
+            </Link>
+          </div>
         </div>
 
         <div style={{ marginTop: '2.5rem' }}>
@@ -83,7 +94,7 @@ async function Dashboard(): Promise<React.ReactElement> {
               {episodes.map((row) => {
                 const status = STATUS[row.status] ?? STATUS.draft;
                 return (
-                  <a className="episode-card" key={row.id} href={`/episodes/${row.id}`}>
+                  <Link className="episode-card" key={row.id} href={`/episodes/${row.id}`}>
                     <div className="row" style={{ gap: '0.5rem' }}>
                       <span className={`pill ${status.className}`}>
                         <span className="pill__dot" />
@@ -95,11 +106,12 @@ async function Dashboard(): Promise<React.ReactElement> {
                     <h2 className="episode-card__title">{row.episode.title.join(' ')}</h2>
                     <div className="episode-card__meta">
                       <span>
-                        {row.episode.shots.length} plans · {row.episode.script.length} beats
+                        {row.episode.shots.length} plans · {row.episode.script.length} beats ·{' '}
+                        {row.episode.settings?.durationS ?? 24} s
                       </span>
                       <span className="episode-card__cta">Ouvrir →</span>
                     </div>
-                  </a>
+                  </Link>
                 );
               })}
             </div>
