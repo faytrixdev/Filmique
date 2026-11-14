@@ -233,6 +233,14 @@ h3.display {
   cursor: not-allowed;
 }
 
+.btn--primary:disabled {
+  --btn-bg: rgba(255, 255, 255, 0.05);
+  --btn-fg: var(--muted);
+  --btn-border: var(--line);
+  opacity: 1;
+  box-shadow: none;
+}
+
 .btn--primary {
   --btn-bg: linear-gradient(180deg, var(--amber-bright), var(--amber));
   --btn-fg: #1a1206;
@@ -757,20 +765,20 @@ h3.display {
 
 .hero__frame {
   position: absolute;
-  inset: 0;
-  overflow: hidden;
+  inset: -30% -45%;
+  overflow: visible;
   pointer-events: none;
 }
 
 .hero__glow {
   position: absolute;
-  top: -22%;
-  right: -8%;
+  top: 0;
+  right: 0;
   width: 62vw;
   height: 62vw;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(233, 180, 76, 0.16), transparent 62%);
-  filter: blur(30px);
+  background: radial-gradient(circle, rgba(233, 180, 76, 0.16), rgba(233, 180, 76, 0.05) 42%, transparent 66%);
+  filter: blur(50px);
   animation: drift 18s ease-in-out infinite alternate;
 }
 

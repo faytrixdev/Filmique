@@ -199,7 +199,14 @@ export default function EditorClient({
               compositionHeight={1080}
               controls
               loop
-              style={{ width: '100%', aspectRatio: '16 / 9', background: '#0E0C1E' }}
+              style={{
+                width: '100%',
+                maxWidth: 'min(100%, calc((100vh - 230px) * 16 / 9))',
+                aspectRatio: '16 / 9',
+                background: '#0E0C1E',
+                margin: '0 auto',
+                display: 'block',
+              }}
             />
             <div className="stage__bar">
               <span className={`pill ${tts ? 'pill--voiced' : 'pill--draft'}`}>
