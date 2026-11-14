@@ -122,6 +122,55 @@ export const parseCartesiaWordsFromJsonLines = (raw: string): Words => {
 /** Cartesia TTS over the v2 WebSocket API: one call returns the PCM audio AND
  * the word timestamps (the old HTTP endpoints /tts/bytes + /tts/with-timestamps
  * are gone, and the bytes endpoint no longer exposes timestamps). */
+/** WAV facts: the PCM payload plus its format. Null when the bytes are not WAV. */
+export const wavInfo = (bytes: Uint8Array): { data: Uint8Array; sampleRate: number; channels: number; bits: number } | null => {
+  if (bytes.byteLength < 44) return null;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const tag = (offset: number): string => String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]);
+  if (tag(0) !== 'RIFF' || tag(8) !== 'WAVE') return null;
+  let offset = 12;
+  while (offset + 8 <= bytes.byteLength) {
+    const id = tag(offset);
+    const size = view.getUint32(offset + 4, true);
+    if (id === 'data') {
+      const data = bytes.slice(offset + 8, Math.min(offset + 8 + size, bytes.byteLength));
+      return { data, sampleRate: view.getUint32(24, true), channels: view.getUint16(22, true), bits: view.getUint16(34, true) };
+    }
+    offset += 8 + size + (size % 2);
+  }
+  return null;
+};
+
+/** Exact duration of a WAV payload, in seconds. */
+export const wavDuration = (bytes: Uint8Array): number | null => {
+  const info = wavInfo(bytes);
+  if (!info) return null;
+  const bytesPerSecond = info.sampleRate * info.channels * (info.bits / 8);
+  if (!bytesPerSecond) return null;
+  return info.data.byteLength / bytesPerSecond;
+};
+
+/** Concatenate WAV files into one valid WAV: headers are dropped and the
+ * payloads are joined, with an exact silence gap between them. Concatenating
+ * whole WAV files would leave a header in the middle and the player would only
+ * play the first chunk. */
+export const concatWav = (parts: Uint8Array[], gapS = 0): Uint8Array | null => {
+  const infos = parts.map((p) => wavInfo(p));
+  if (infos.some((i) => i === null)) return null;
+  const typed = infos as { data: Uint8Array; sampleRate: number; channels: number; bits: number }[];
+  const first = typed[0];
+  const bytesPerSecond = first.sampleRate * first.channels * (first.bits / 8);
+  const gapBytes = Math.max(0, Math.round(gapS * bytesPerSecond));
+  const silence = new Uint8Array(gapBytes);
+  const chunks: Uint8Array[] = [];
+  typed.forEach((info, index) => {
+    if (index > 0 && gapBytes > 0) chunks.push(silence);
+    chunks.push(info.data);
+  });
+  const pcm = concatBytes(chunks);
+  return pcmToWav(pcm, first.sampleRate, first.channels);
+};
+
 export class CartesiaVoice implements VoiceProvider {
   constructor(
     private readonly apiKey: string,

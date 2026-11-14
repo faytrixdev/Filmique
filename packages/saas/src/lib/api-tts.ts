@@ -1,6 +1,6 @@
-import type { VoiceProvider } from '@what-if/engine/providers/voice';
+import { concatWav, wavDuration, type VoiceProvider } from '@what-if/engine/providers/voice';
 import type { EpisodeJson } from '@what-if/engine/schema';
-import { episodeText, stitchBeats } from './tts-flow';
+import { BEAT_GAP_S, episodeText, stitchBeats } from './tts-flow';
 import { getEpisode, NotFoundError, type EpisodeRepo } from './episodes';
 import type { TtsResult } from '../db/jobs-repo';
 import { DEFAULT_VOICE_ID } from './voices';
@@ -48,8 +48,21 @@ export const postTts = async (ctx: TtsCtx, id: string): Promise<Response> => {
       audioBytes.push(audio);
       mimes.push(mime ?? 'audio/mpeg');
     }
-    const { words, offsets } = stitchBeats(results);
-    const audioUrl = await ctx.saveAudio(concatBytes(audioBytes), mimes[0]);
+    // Measured durations keep the word track aligned with the audio that plays.
+    const durations = audioBytes.map((bytes) => wavDuration(bytes) ?? 0);
+    const { words, offsets } = stitchBeats(results, BEAT_GAP_S, durations);
+    // One valid audio file: WAV parts are merged (headers dropped, breath gaps
+    // inserted); anything else is concatenated as-is.
+    const merged = concatWav(audioBytes, BEAT_GAP_S);
+    const audio = merged ?? concatBytes(audioBytes);
+    const mime = merged ? 'audio/wav' : mimes[0];
+    // The timeline runs to the end of the last word: make sure it covers the
+    // whole voice, trailing silence included.
+    const audioDuration = wavDuration(audio) ?? (words.length > 0 ? words[words.length - 1].e : 0);
+    if (words.length > 0 && audioDuration > words[words.length - 1].e) {
+      words[words.length - 1] = { ...words[words.length - 1], e: audioDuration };
+    }
+    const audioUrl = await ctx.saveAudio(audio, mime);
     const value: TtsResult = { audioUrl, words, offsets, voiceId };
     await ctx.jobs.recordDone(id, { voiceId, text }, value);
     return json(value);
