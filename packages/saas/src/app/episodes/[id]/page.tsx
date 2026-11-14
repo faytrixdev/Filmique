@@ -29,7 +29,7 @@ async function Editor({ params }: { params: Promise<{ id: string }> }) {
 // /episodes/[id] — the editor. Session-guarded, ownership-guarded.
 export default async function EpisodePage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <Suspense fallback={<p style={{ margin: '8vh auto', maxWidth: 720 }}>Chargement…</p>}>
+    <Suspense fallback={<div className="ground loading">Chargement du plateau…</div>}>
       <Editor params={params} />
     </Suspense>
   );

@@ -8,6 +8,7 @@ import { SaaSEpisode, fpsSaaS } from '@/components/saas-episode';
 import type { TtsResult } from '@/lib/api-tts';
 import { clampKey, moveShot, type Shot } from '@/lib/editor-helpers';
 import { DEFAULT_VOICE_LABEL } from '@/lib/voices';
+import { Brand, Grain } from '@/components/brand';
 
 const fps = fpsSaaS;
 
@@ -23,11 +24,28 @@ const coerceShots = (ep: EpisodeJson): EpisodeJson => ({
   }),
 });
 
-export default function EditorClient({ episodeId, episode, tts: initialTts }: { episodeId: string; episode: EpisodeJson; tts: TtsResult | null }) {
+const timecode = (frames: number): string => {
+  const seconds = Math.floor(frames / fps);
+  const rest = Math.floor(frames % fps);
+  const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
+  const ss = String(seconds % 60).padStart(2, '0');
+  return `${mm}:${ss}:${String(rest).padStart(2, '0')}`;
+};
+
+export default function EditorClient({
+  episodeId,
+  episode,
+  tts: initialTts,
+}: {
+  episodeId: string;
+  episode: EpisodeJson;
+  tts: TtsResult | null;
+}): React.ReactElement {
   const [tab, setTab] = useState<'script' | 'shots' | 'audio'>('script');
   const [draft, setDraft] = useState<EpisodeJson>(() => coerceShots(episode));
   const [tts, setTts] = useState<TtsResult | null>(initialTts);
   const [state, setState] = useState('');
+  const [busy, setBusy] = useState(false);
   const playerRef = useRef<PlayerRef>(null);
 
   const timeline = useMemo(() => {
@@ -39,41 +57,51 @@ export default function EditorClient({ episodeId, episode, tts: initialTts }: { 
   const mutate = (fn: (d: EpisodeJson) => EpisodeJson): void => setDraft(fn);
 
   const save = async (): Promise<void> => {
+    setBusy(true);
     setState('Enregistrement…');
     const res = await fetch(`/api/episodes/${episodeId}`, { method: 'PUT', body: JSON.stringify(draft) });
-    setState(res.ok ? 'Enregistré.' : `Échec de l'enregistrement (${res.status})`);
+    setState(res.ok ? 'Version enregistrée.' : `Échec de l’enregistrement (${res.status})`);
+    setBusy(false);
   };
 
   const rerunTts = async (): Promise<void> => {
-    setState('Voix…');
+    setBusy(true);
+    setState('Synthèse de la voix…');
     const savedFirst = await fetch(`/api/episodes/${episodeId}`, { method: 'PUT', body: JSON.stringify(draft) });
     if (!savedFirst.ok) {
       setState(`Synthèse impossible (${savedFirst.status})`);
+      setBusy(false);
       return;
     }
     const res = await fetch(`/api/episodes/${episodeId}/tts`, { method: 'POST' });
     if (!res.ok) {
       setState(`Synthèse impossible (${res.status})`);
+      setBusy(false);
       return;
     }
     setTts((await res.json()) as TtsResult);
-    setState('Voix mise à jour.');
+    setState('Voix mise à jour — les coupes sont recalées.');
+    setBusy(false);
   };
 
   // Task 15: the price is read from the API answer, displayed before the click
   const exportFilmCost = '0,04 €';
   const exportFilm = async (): Promise<void> => {
-    setState('Export…');
+    setBusy(true);
+    setState('Envoi du rendu…');
     const res = await fetch(`/api/episodes/${episodeId}/export`, { method: 'POST' });
     if (res.status === 402) {
       setState('Solde insuffisant pour cet export.');
+      setBusy(false);
       return;
     }
     if (!res.ok) {
       setState(`Export indisponible (${res.status})`);
+      setBusy(false);
       return;
     }
-    setState('Render lancé — le MP4 arrive (callback Lambda).');
+    setState('Render lancé — le MP4 arrive par callback.');
+    setBusy(false);
   };
 
   // --- Plans tab handlers -------------------------------------------------
@@ -102,130 +130,263 @@ export default function EditorClient({ episodeId, episode, tts: initialTts }: { 
   const setVoiceId = (voiceId: string): void =>
     mutate((d) => ({
       ...d,
-      voice: voiceId.trim() ? { id: voiceId.trim(), model: d.voice?.model ?? 'sonic-2', settings: d.voice?.settings ?? { stability: 0.5, similarity_boost: 0.75 } } : d.voice,
+      voice: voiceId.trim()
+        ? {
+            id: voiceId.trim(),
+            model: d.voice?.model ?? 'sonic-2',
+            settings: d.voice?.settings ?? { stability: 0.5, similarity_boost: 0.75 },
+          }
+        : d.voice,
     }));
-  const setMusic = (clip: string): void => mutate((d) => ({ ...d, sound: { ...d.sound, music: { ...d.sound.music, clip } } }));
+  const setMusic = (clip: string): void =>
+    mutate((d) => ({ ...d, sound: { ...d.sound, music: { ...d.sound.music, clip } } }));
   const setGain = (which: 'sfx_lu' | 'music_lu', value: number): void =>
     mutate((d) => ({ ...d, sound: { ...d.sound, levels: { ...d.sound.levels, [which]: value } } }));
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 440px', gap: 16, padding: 16, minHeight: '100vh', fontFamily: 'system-ui' }}>
-      <div>
-        <h1 style={{ margin: '0 0 8px', fontSize: 22 }}>{draft.title.join(' ')}</h1>
-        {/* 1920x1080 preview scaled; true 9:16 crop is a post-render job on Lambda (MVP) */}
-        <Player
-          ref={playerRef}
-          component={SaaSEpisode}
-          inputProps={{ episode: draft, tts }}
-          durationInFrames={timeline.total}
-          fps={fps}
-          compositionWidth={1920}
-          compositionHeight={1080}
-          controls
-          loop
-          style={{ width: '100%', aspectRatio: '16 / 9', background: '#0E0C1E' }}
-        />
-        <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', fontSize: 13 }}>
-          <button onClick={() => void save()}>Enregistrer</button>
-          <button onClick={() => void rerunTts()}>Voix</button>
-          <button onClick={() => void exportFilm()}>Export {exportFilmCost}</button>
-          <span style={{ opacity: 0.7 }}>
-            {state || `${timeline.total}f · ${timeline.shots.length} plans · ${tts ? 'voix réelle' : 'piste démo 0,35 s/mot'}`}
-          </span>
-        </div>
-      </div>
+    <div className="ground">
+      <Grain />
 
-      <aside style={{ borderLeft: '1px solid #E5E0F0', paddingLeft: 16 }}>
-        <nav style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-          {(['script', 'shots', 'audio'] as const).map((tabName) => (
-            <button key={tabName} onClick={() => setTab(tabName)} style={{ fontWeight: tab === tabName ? 700 : 400 }}>
-              {tabName}
-            </button>
-          ))}
-        </nav>
-        {tab === 'script' ? (
-          <div>
-            {draft.script.map((b, i) => (
-              <div key={i} style={{ marginBottom: 8 }}>
-                <label style={{ fontSize: 12, opacity: 0.7 }}>{b.beat}</label>
-                <textarea
-                  value={b.text}
-                  onChange={(e) => mutate((d) => ({ ...d, script: d.script.map((bb, ii) => (ii === i ? { ...bb, text: e.target.value } : bb)) }))}
-                  rows={3}
-                  style={{ width: '100%', fontSize: 13, fontFamily: 'inherit' }}
-                />
-              </div>
-            ))}
-            <p style={{ fontSize: 12, opacity: 0.6 }}>Enregistrer → version. Voix → re-TTS + recalage des cuts.</p>
-          </div>
-        ) : tab === 'shots' ? (
-          <div>
-            {draft.shots.map((s, i) => {
-              const info = timeline.shots.find((sh) => sh.id === s.id);
-              const archetype = s.archetype ?? '(builtin)';
-              return (
-                <div key={s.id} style={{ border: '1px solid #EEE', borderRadius: 8, padding: 8, marginBottom: 8, fontSize: 13 }}>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <b>{s.id}</b>
-                    <span style={{ opacity: 0.6 }}>{s.size} · {archetype} · {info ? `${info.len}f` : ''}</span>
-                    <span style={{ flex: 1 }} />
-                    <button aria-label={`monter ${s.id}`} onClick={() => moveShotAt(i, -1)} disabled={i === 0}>↑</button>
-                    <button aria-label={`descendre ${s.id}`} onClick={() => moveShotAt(i, 1)} disabled={i === draft.shots.length - 1}>↓</button>
-                    <button onClick={() => shotFirsts.has(s.id) && playerRef.current?.seekTo(shotFirsts.get(s.id) as number)}>
-                      ▶ jouer ici
-                    </button>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
-                    <label style={{ opacity: 0.7 }}>key</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={s.key}
-                      onChange={(e) => setShotKey(i, Number(e.target.value))}
-                      style={{ width: 80 }}
-                    />
-                    <label style={{ opacity: 0.7 }}>set</label>
-                    <input
-                      value={s.set}
-                      onChange={(e) => mutate((d) => ({ ...d, shots: d.shots.map((ss, ii) => (ii === i ? { ...ss, set: e.target.value } : ss)) }))}
-                      style={{ width: 110 }}
-                    />
-                  </div>
-                  <ShotPropsEditor shot={s} onApply={(raw) => setShotPropsRaw(i, raw)} />
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div style={{ fontSize: 13 }}>
-            <label>Voix (id Cartesia)</label>
-            <input
-              value={draft.voice?.id ?? ''}
-              onChange={(e) => setVoiceId(e.target.value)}
-              placeholder={DEFAULT_VOICE_LABEL}
-              style={{ width: '100%' }}
+      <header className="topbar">
+        <Brand href="/app" />
+        <span className="faint" style={{ opacity: 0.4 }}>
+          /
+        </span>
+        <span
+          style={{
+            fontFamily: 'var(--font-display), Georgia, serif',
+            fontSize: '1.05rem',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: '38ch',
+          }}
+        >
+          {draft.title.join(' ')}
+        </span>
+        <span className="spacer" />
+        <span className="status" data-busy={busy}>
+          {state || `${timeline.total} images · ${timeline.shots.length} plans · ${tts ? 'voix réelle' : 'piste démo'}`}
+        </span>
+        <button className="btn btn--sm" onClick={() => void save()} disabled={busy}>
+          Enregistrer
+        </button>
+        <button className="btn btn--sm" onClick={() => void rerunTts()} disabled={busy}>
+          Voix
+        </button>
+        <button className="btn btn--primary btn--sm" onClick={() => void exportFilm()} disabled={busy}>
+          Export {exportFilmCost}
+        </button>
+      </header>
+
+      <div className="studio">
+        <div className="studio__main">
+          <div className="stage">
+            <div className="stage__slate">
+              <span className="card__label">Aperçu · 1920×1080</span>
+              <span className="mono faint">
+                {timecode(0)} — {timecode(timeline.total)} · {fps} i/s
+              </span>
+            </div>
+            {/* 1920x1080 preview scaled; true 9:16 crop is a post-render job on Lambda (MVP) */}
+            <Player
+              ref={playerRef}
+              component={SaaSEpisode}
+              inputProps={{ episode: draft, tts }}
+              durationInFrames={timeline.total}
+              fps={fps}
+              compositionWidth={1920}
+              compositionHeight={1080}
+              controls
+              loop
+              style={{ width: '100%', aspectRatio: '16 / 9', background: '#0E0C1E' }}
             />
-            <label style={{ display: 'block', marginTop: 10 }}>Musique (bed déterministe)</label>
-            <select value={draft.sound.music.clip} onChange={(e) => setMusic(e.target.value)}>
-              {Object.keys(MUSIC).map((tone) => (
-                <option key={tone} value={tone}>
-                  {tone} — {MUSIC[tone][0].slice(0, 40)}…
-                </option>
-              ))}
-            </select>
-            <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
-              sfx LU
-              <input type="number" step={0.1} value={draft.sound.levels.sfx_lu} onChange={(e) => setGain('sfx_lu', Number(e.target.value))} style={{ width: 70 }} />
-              <span style={{ flex: 1 }} />
-              music LU
-              <input type="number" step={0.1} value={draft.sound.levels.music_lu} onChange={(e) => setGain('music_lu', Number(e.target.value))} style={{ width: 70 }} />
-            </label>
-            <p style={{ fontSize: 12, opacity: 0.6, marginTop: 10 }}>
-              La musique/les effets passent au rendu Lambda ; la voix du Player suit le dernier job re-TTS.
-            </p>
+            <div className="stage__bar">
+              <span className={`pill ${tts ? 'pill--voiced' : 'pill--draft'}`}>
+                <span className="pill__dot" />
+                {tts ? 'Voix Cartesia' : 'Piste démo'}
+              </span>
+              <span className="mono faint">{draft.shots.length} plans</span>
+              <span className="spacer" />
+              <span className="note">
+                Enregistrer = version · Voix = re-synthèse + recalage des coupes · Export = MP4
+              </span>
+            </div>
           </div>
-        )}
-      </aside>
+        </div>
+
+        <aside className="studio__panel">
+          <div className="tabs" role="tablist" aria-label="Édition">
+            {(['script', 'shots', 'audio'] as const).map((tabName) => (
+              <button
+                key={tabName}
+                role="tab"
+                aria-selected={tab === tabName}
+                className="tab"
+                data-active={tab === tabName}
+                onClick={() => setTab(tabName)}
+              >
+                {tabName === 'script' ? 'Script' : tabName === 'shots' ? 'Plans' : 'Audio'}
+              </button>
+            ))}
+          </div>
+
+          <div className="inspector__body">
+            {tab === 'script' ? (
+              <>
+                {draft.script.map((b, i) => (
+                  <div className="field" key={i}>
+                    <label htmlFor={`beat-${i}`}>
+                      {b.beat} · {b.text.trim().split(/\s+/).filter(Boolean).length} mots
+                    </label>
+                    <textarea
+                      id={`beat-${i}`}
+                      value={b.text}
+                      onChange={(e) =>
+                        mutate((d) => ({
+                          ...d,
+                          script: d.script.map((bb, ii) => (ii === i ? { ...bb, text: e.target.value } : bb)),
+                        }))
+                      }
+                      rows={3}
+                      className="textarea"
+                    />
+                  </div>
+                ))}
+                <p className="note">
+                  « Voix » relance la synthèse sur ce texte puis recale chaque coupe sur les nouveaux timestamps.
+                </p>
+              </>
+            ) : tab === 'shots' ? (
+              <>
+                {draft.shots.map((s, i) => {
+                  const info = timeline.shots.find((sh) => sh.id === s.id);
+                  const archetype = s.archetype ?? 'builtin';
+                  return (
+                    <div className="shot" key={s.id}>
+                      <div className="shot__head">
+                        <span className="shot__id">{s.id}</span>
+                        <span className="shot__meta">
+                          {s.size} · {archetype}
+                          {info ? ` · ${info.len} img` : ''}
+                        </span>
+                        <span className="spacer" />
+                        <button
+                          className="btn btn--ghost btn--sm"
+                          aria-label={`monter ${s.id}`}
+                          onClick={() => moveShotAt(i, -1)}
+                          disabled={i === 0}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          className="btn btn--ghost btn--sm"
+                          aria-label={`descendre ${s.id}`}
+                          onClick={() => moveShotAt(i, 1)}
+                          disabled={i === draft.shots.length - 1}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          className="btn btn--sm"
+                          onClick={() => shotFirsts.has(s.id) && playerRef.current?.seekTo(shotFirsts.get(s.id) as number)}
+                        >
+                          Lire ici
+                        </button>
+                      </div>
+                      <div className="row" style={{ gap: '0.6rem', flexWrap: 'wrap' }}>
+                        <label className="field__label" htmlFor={`key-${i}`}>
+                          Key
+                        </label>
+                        <input
+                          id={`key-${i}`}
+                          type="number"
+                          min={1}
+                          value={s.key}
+                          onChange={(e) => setShotKey(i, Number(e.target.value))}
+                          className="input"
+                          style={{ width: 84 }}
+                        />
+                        <label className="field__label" htmlFor={`set-${i}`}>
+                          Set
+                        </label>
+                        <input
+                          id={`set-${i}`}
+                          value={s.set}
+                          onChange={(e) =>
+                            mutate((d) => ({
+                              ...d,
+                              shots: d.shots.map((ss, ii) => (ii === i ? { ...ss, set: e.target.value } : ss)),
+                            }))
+                          }
+                          className="input"
+                          style={{ flex: '1 1 110px', minWidth: 0 }}
+                        />
+                      </div>
+                      <ShotPropsEditor shot={s} onApply={(raw) => setShotPropsRaw(i, raw)} />
+                    </div>
+                  );
+                })}
+              </>
+            ) : (
+              <>
+                <div className="field">
+                  <label htmlFor="voice-id">Voix (id Cartesia)</label>
+                  <input
+                    id="voice-id"
+                    value={draft.voice?.id ?? ''}
+                    onChange={(e) => setVoiceId(e.target.value)}
+                    placeholder={DEFAULT_VOICE_LABEL}
+                    className="input"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="music-clip">Musique (bed déterministe)</label>
+                  <select
+                    id="music-clip"
+                    value={draft.sound.music.clip}
+                    onChange={(e) => setMusic(e.target.value)}
+                    className="select"
+                  >
+                    {Object.keys(MUSIC).map((tone) => (
+                      <option key={tone} value={tone}>
+                        {tone} — {MUSIC[tone][0].slice(0, 40)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="row" style={{ gap: '0.75rem' }}>
+                  <div className="field" style={{ flex: 1 }}>
+                    <label htmlFor="sfx-lu">SFX (LU)</label>
+                    <input
+                      id="sfx-lu"
+                      type="number"
+                      step={0.1}
+                      value={draft.sound.levels.sfx_lu}
+                      onChange={(e) => setGain('sfx_lu', Number(e.target.value))}
+                      className="input"
+                    />
+                  </div>
+                  <div className="field" style={{ flex: 1 }}>
+                    <label htmlFor="music-lu">Musique (LU)</label>
+                    <input
+                      id="music-lu"
+                      type="number"
+                      step={0.1}
+                      value={draft.sound.levels.music_lu}
+                      onChange={(e) => setGain('music_lu', Number(e.target.value))}
+                      className="input"
+                    />
+                  </div>
+                </div>
+                <p className="note">
+                  La musique et les effets passent au rendu ; la voix de l’aperçu suit le dernier job de synthèse.
+                </p>
+              </>
+            )}
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
@@ -241,21 +402,26 @@ const ShotPropsEditor: React.FC<{ shot: Shot; onApply: (raw: string) => void }> 
     invalid = raw.trim() !== '';
   }
   return (
-    <div style={{ marginTop: 6 }}>
-      <button onClick={() => setOpen((o) => !o)} style={{ fontSize: 12 }}>
-        {open ? 'fermer props' : 'props archétype'}
+    <div>
+      <button className="btn btn--ghost btn--sm" onClick={() => setOpen((o) => !o)}>
+        {open ? 'Fermer les props' : 'Props d’archétype'}
       </button>
       {open ? (
-        <>
+        <div className="stack" style={{ gap: '0.35rem', marginTop: '0.4rem' }}>
           <textarea
             value={raw}
             onChange={(e) => setRaw(e.target.value)}
             onBlur={() => !invalid && onApply(raw)}
-            rows={5}
-            style={{ width: '100%', fontFamily: 'monospace', fontSize: 12, marginTop: 4, borderColor: invalid ? 'crimson' : '#CCC' }}
+            rows={6}
+            className="textarea mono"
+            style={{
+              fontFamily: 'var(--font-mono), monospace',
+              fontSize: '0.72rem',
+              borderColor: invalid ? 'var(--rose)' : undefined,
+            }}
           />
-          {invalid ? <span style={{ color: 'crimson', fontSize: 11 }}>JSON invalide</span> : null}
-        </>
+          {invalid ? <span style={{ color: 'var(--rose)', fontSize: '0.72rem' }}>JSON invalide</span> : null}
+        </div>
       ) : null}
     </div>
   );

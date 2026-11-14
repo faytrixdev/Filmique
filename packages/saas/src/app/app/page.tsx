@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
@@ -7,9 +7,22 @@ import { getDb } from '@/db';
 import { drizzleEpisodeRepo } from '@/db/episodes-repo';
 import { drizzleCreditRepo } from '@/db/credits-repo';
 import { logoutAction } from '@/app/actions/auth';
+import { Brand, Grain } from '@/components/brand';
 import { GenerateForm } from './generate-form';
 
-async function Dashboard() {
+const STATUS: Record<string, { label: string; className: string }> = {
+  draft: { label: 'Brouillon', className: 'pill--draft' },
+  render_pending: { label: 'Rendu en cours', className: 'pill--voiced' },
+  rendered: { label: 'Rendu', className: 'pill--rendered' },
+  failed: { label: 'Échec', className: 'pill--failed' },
+};
+
+const euros = (micros: number): string => (micros / 1_000_000).toFixed(2).replace('.', ',') + ' €';
+
+const formatDate = (value: number | Date | string): string =>
+  new Date(value).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+
+async function Dashboard(): Promise<React.ReactElement> {
   await connection(); // session only exists at request time (cookies + Date.now)
   const session = readRequestSession((await cookies()).get(SESSION_COOKIE)?.value, authSecret());
   if (!session) redirect('/login');
@@ -19,38 +32,88 @@ async function Dashboard() {
   if (!userId) redirect('/login');
   const episodes = await episodeRepo.listFor(userId);
   const balance = await drizzleCreditRepo(db).balanceFor(userId);
+
   return (
-    <main style={{ maxWidth: 720, margin: '8vh auto', fontFamily: 'system-ui' }}>
-      <h1>Mes épisodes</h1>
-      <p style={{ fontSize: 13, opacity: 0.7 }}>
-        Connecté en tant qu&apos;{session.email} · solde {(balance / 1_000_000).toFixed(2)} €
-      </p>
-      {episodes.length === 0 ? (
-        <p style={{ fontSize: 14, opacity: 0.6 }}>Aucun épisode pour l&apos;instant — écrivez un « Et si … » ci-dessous.</p>
-      ) : (
-        <ul style={{ paddingLeft: 16, fontSize: 14 }}>
-          {episodes.map((row) => (
-            <li key={row.id} style={{ marginBottom: 6 }}>
-              <a href={`/episodes/${row.id}`} style={{ fontWeight: 600 }}>
-                {row.episode.title.join(' ')}
-              </a>
-              <span style={{ opacity: 0.6 }}> · {row.status} · maj {new Date(row.updatedAt).toLocaleString('fr-FR')}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <GenerateForm />
-      <form action={logoutAction}>
-        <button type="submit">Se déconnecter</button>
-      </form>
-    </main>
+    <div className="ground">
+      <Grain />
+      <header className="topbar">
+        <Brand href="/app" />
+        <span className="spacer" />
+        <span className="pill pill--voiced" title="Crédits disponibles">
+          <span className="pill__dot" />
+          {euros(balance)}
+        </span>
+        <span className="mono faint" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {session.email}
+        </span>
+        <form action={logoutAction}>
+          <button className="btn btn--ghost btn--sm" type="submit">
+            Se déconnecter
+          </button>
+        </form>
+      </header>
+
+      <main className="container" style={{ paddingTop: '2.5rem', paddingBottom: '4rem' }}>
+        <div className="row" style={{ alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap' }}>
+          <div className="stack" style={{ gap: '0.4rem' }}>
+            <span className="eyebrow">Studio</span>
+            <h1 className="display">Mes épisodes</h1>
+          </div>
+          <span className="spacer" />
+          <span className="mono faint">
+            {episodes.length} {episodes.length === 1 ? 'film' : 'films'} · solde {euros(balance)}
+          </span>
+        </div>
+
+        <div style={{ marginTop: '1.75rem' }}>
+          <GenerateForm />
+        </div>
+
+        <div style={{ marginTop: '2.5rem' }}>
+          {episodes.length === 0 ? (
+            <div className="empty">
+              <span className="eyebrow">Rien à l’affiche</span>
+              <p className="lede" style={{ textAlign: 'center' }}>
+                Aucun épisode pour l’instant. Écrivez une hypothèse ci-dessus — « et si… » — et le studio s’occupe du
+                reste.
+              </p>
+            </div>
+          ) : (
+            <div className="episodes">
+              {episodes.map((row) => {
+                const status = STATUS[row.status] ?? STATUS.draft;
+                return (
+                  <a className="episode-card" key={row.id} href={`/episodes/${row.id}`}>
+                    <div className="row" style={{ gap: '0.5rem' }}>
+                      <span className={`pill ${status.className}`}>
+                        <span className="pill__dot" />
+                        {status.label}
+                      </span>
+                      <span className="spacer" />
+                      <span className="mono faint">{formatDate(row.updatedAt)}</span>
+                    </div>
+                    <h2 className="episode-card__title">{row.episode.title.join(' ')}</h2>
+                    <div className="episode-card__meta">
+                      <span>
+                        {row.episode.shots.length} plans · {row.episode.script.length} beats
+                      </span>
+                      <span className="episode-card__cta">Ouvrir →</span>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
 
 // Protected dashboard: no valid session → straight to /login.
-export default function AppPage() {
+export default function AppPage(): React.ReactElement {
   return (
-    <Suspense fallback={<p style={{ margin: '8vh auto', maxWidth: 720 }}>Chargement…</p>}>
+    <Suspense fallback={<div className="ground loading">Ouverture du studio…</div>}>
       <Dashboard />
     </Suspense>
   );
