@@ -147,6 +147,7 @@ export const draftStoryboard = async (input: ComposeInput, script: ScriptDraft, 
       world: s.world,
       rhythm: s.rhythm,
       cast: Object.keys(LOOKS),
+      format: s.format,
       ARCHETYPES,
     }).prompt,
   );

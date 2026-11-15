@@ -1,5 +1,5 @@
 import { DIRECTOR_SYSTEM } from './system';
-import { WORLD_SETS, RHYTHM, type World, type Rhythm } from '../settings';
+import { WORLD_SETS, RHYTHM, type World, type Rhythm, type Format } from '../settings';
 
 // The storyboard is the only step that must speak the archetype catalogue: the whitelist
 // below is generated from the live registry so prompts and code can never drift apart.
@@ -42,12 +42,19 @@ export const storyboardPrompt = (input: {
   world?: World;
   rhythm?: Rhythm;
   cast?: string[];
+  format?: Format;
   ARCHETYPES: Record<string, unknown>;
 }): { system: string; prompt: string } => {
   const secs = input.durationS ?? 24;
   const frames = Math.round(secs * 30);
   const sets = WORLD_SETS[input.world ?? 'maison'];
   const [minShots, maxShots] = RHYTHM[input.rhythm ?? 'standard'].shots;
+  const framing =
+    input.format === '9:16'
+      ? '\nCadrage VERTICAL 9:16 : un seul sujet centré par plan, l’action dans le tiers central, rien d’important sur les bords (le cadre coupe les côtés).'
+      : input.format === '1:1'
+        ? '\nCadrage CARRÉ 1:1 : sujet centré, composition compacte, rien d’important sur les bords gauche et droit.'
+        : '';
   return {
     system: DIRECTOR_SYSTEM,
     prompt: `Sujet : ${input.topic}
@@ -57,7 +64,7 @@ ${input.script.map((b) => `[${b.beat}] ${b.text}`).join('\n')}
 Soutiens scientifiques :
 ${input.science.map((s) => `- ${s.claim}`).join('\n')}
 
-Découpe le script en ${minShots} à ${maxShots} plans, durée totale ≈ ${frames} frames (30 fps, tolérance ±15 %).
+Découpe le script en ${minShots} à ${maxShots} plans, durée totale ≈ ${frames} frames (30 fps, tolérance ±15 %).${framing}
 Catalogue d'archetypes — SEULS CES NOMS SONT AUTORISÉS, avec le TYPE EXACT de chaque prop (toutes optionnelles sauf celles notées *) :
 ${archWhitelist(input.ARCHETYPES)}
 TYPES STRICTS : un nombre s'écrit en JSON nombre (92, jamais "92"), un booléen en true/false (jamais "true"), une enum EXACTEMENT une des valeurs listées, une tuple[2 strings] = un tableau de 2 chaînes (le titre, le sous-titre).
@@ -67,6 +74,7 @@ Pour chaque plan :
 - « set » : ${sets.join(' | ')}
 - « key » : durée du plan en frames (8 à 80)
 - « note » : une phrase d'intent (français)
+- « focal » : où se trouve le sujet du plan dans l'image 16:9 — "gauche", "centre" ou "droite". Sert au recadrage vertical et carré : ne mens pas, regarde ta composition.
 - « archetype » + « archetypeProps » : valide contre le catalogue ci-dessus (props par défaut très bien tolérées)
 - au moins 1 plan « titleReveal » pour le titre, 1 plan « schematicClaim » ou « schematicBar » pour un fait chiffré, et un plan par beat du script
 
@@ -76,6 +84,6 @@ Pour chaque plan :
 « tail » : 0.8 à 1.6 s de respiration finale.
 
 Réponds EXACTEMENT :
-{"cast":["pipHood"],"shots":[{"id":"S1","size":"wide","set":"kitchen","key":18,"note":"...","archetype":"wideRoom","archetypeProps":{}}],"edit":[{"shot":"S1","at":"premier mot","look":"million"}],"fx":[{"at":"s:3.2","kind":"flash"}],"tail":1.2}`,
+{"cast":["pipHood"],"shots":[{"id":"S1","size":"wide","set":"kitchen","key":18,"note":"...","focal":"centre","archetype":"wideRoom","archetypeProps":{}}],"edit":[{"shot":"S1","at":"premier mot","look":"million"}],"fx":[{"at":"s:3.2","kind":"flash"}],"tail":1.2}`,
   };
 };

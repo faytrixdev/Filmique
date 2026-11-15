@@ -153,6 +153,7 @@ export const composeTimeline = (ep: EpisodeJson, words: Words, opts: ComposeOpti
       first: Math.min(...mine.map((g) => g.a)),
       ...(mine[0].line ? { line: mine[0].line } : { line: '' }),
       ...(s.note ? { note: s.note } : {}),
+      ...(s.focal ? { focal: s.focal } : {}),
     };
   });
 

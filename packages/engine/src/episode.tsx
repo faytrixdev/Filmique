@@ -1,9 +1,26 @@
 import React from 'react';
 import { AbsoluteFill, Audio, staticFile, useCurrentFrame } from 'remotion';
 import { clamp, lerp } from './anim';
+import { CaptionOverlay, type CaptionMode } from './captions';
 import { KitDefs } from './kit';
 import { SetDefs } from './light';
+import type { Words } from './schema';
+import { FORMAT_DIMS, type Format } from './settings';
 import type { ThemeDef } from './theme';
+
+/** Shots are drawn in one 1920x1080 world; the format only changes the window. */
+export const WORLD_W = 1920;
+export const WORLD_H = 1080;
+
+/** Cover transform: the world scaled to fill a w x h canvas, cropped around a
+ * focal point (0 = left edge, 0.5 = centre, 1 = right edge). */
+export const coverTransform = (w: number, h: number, focal = 0.5): { scale: number; x: number; y: number } => {
+  const scale = Math.max(w / WORLD_W, h / WORLD_H);
+  return { scale, x: (w - WORLD_W * scale) * focal, y: (h - WORLD_H * scale) * 0.5 };
+};
+
+/** Where the storyboard said the subject sits, as a crop focal (default: centre). */
+export const focalOf = (f?: string): number => (f === 'gauche' ? 0.28 : f === 'droite' ? 0.72 : 0.5);
 
 /** Media sources: local files go through staticFile(), remote URLs (TTS audio
  * served by the API) are passed through untouched - staticFile rejects them. */
@@ -23,7 +40,7 @@ export type Seg = {
   look?: string; // a named power look (rewind, freeze...) the episode defines: grade + overlay while it runs
   line?: string; // the words spoken over it (for the storyboard)
 };
-export type ShotInfo = { id: string; size: string; key: number; len: number; first: number; line?: string; note?: string };
+export type ShotInfo = { id: string; size: string; key: number; len: number; first: number; line?: string; note?: string; focal?: string };
 export type Fx = { f: number; kind: 'flash' | 'shake'; color?: string; o?: number; len?: number; amp?: number };
 export type Timeline = {
   slug: string;
@@ -88,14 +105,16 @@ const fxAt = (tl: Timeline, f: number) => {
 };
 
 /** Vignette and a fine grain that changes on twos, to take the vector edge off (the genre's finish). */
-const Grade: React.FC<{ f: number; grain: boolean; vignette: boolean; grainAmount?: number; vignetteAmount?: number }> = ({
-  f,
-  grain,
-  vignette,
-  grainAmount = 0.06,
-  vignetteAmount = 0.55,
-}) => (
-  <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+const Grade: React.FC<{
+  f: number;
+  grain: boolean;
+  vignette: boolean;
+  grainAmount?: number;
+  vignetteAmount?: number;
+  w: number;
+  h: number;
+}> = ({ f, grain, vignette, grainAmount = 0.06, vignetteAmount = 0.55, w, h }) => (
+  <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
     <defs>
       <radialGradient id="epVig" cx="50%" cy="50%" r="75%">
         <stop offset="55%" stopColor="#000" stopOpacity={0} />
@@ -106,33 +125,33 @@ const Grade: React.FC<{ f: number; grain: boolean; vignette: boolean; grainAmoun
         <feColorMatrix type="matrix" values={`0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 ${grainAmount} 0`} />
       </filter>
     </defs>
-    {vignette ? <rect width={1920} height={1080} fill="url(#epVig)" /> : null}
-    {grain ? <rect width={1920} height={1080} filter="url(#epGrain)" /> : null}
+    {vignette ? <rect width={w} height={h} fill="url(#epVig)" /> : null}
+    {grain ? <rect width={w} height={h} filter="url(#epGrain)" /> : null}
   </svg>
 );
 
 /** The theme's light wash: two colours laid over the picture, soft-light so the
  * drawing keeps its contrast and only changes temperature. */
-const Wash: React.FC<{ theme: ThemeDef }> = ({ theme }) => {
+const Wash: React.FC<{ theme: ThemeDef; w: number; h: number }> = ({ theme, w, h }) => {
   const wash = theme.wash;
   if (!wash) return null;
   const id = `epWash-${theme.id}`;
   return (
-    <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={wash.top} />
           <stop offset="100%" stopColor={wash.bottom} />
         </linearGradient>
       </defs>
-      <rect width={1920} height={1080} fill={`url(#${id})`} opacity={wash.alpha} style={{ mixBlendMode: 'soft-light' }} />
+      <rect width={w} height={h} fill={`url(#${id})`} opacity={wash.alpha} style={{ mixBlendMode: 'soft-light' }} />
     </svg>
   );
 };
 
 /** One shot drawn in the shared defs (filters, gradients), in a 1920 x 1080 world. */
 export const ShotFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <svg width={1920} height={1080} viewBox="0 0 1920 1080">
+  <svg width={WORLD_W} height={WORLD_H} viewBox={`0 0 ${WORLD_W} ${WORLD_H}`}>
     <KitDefs />
     <SetDefs />
     {children}
@@ -143,6 +162,27 @@ export const ShotFrame: React.FC<{ children: React.ReactNode }> = ({ children })
 export const pictureFilter = (theme: ThemeDef | undefined, lookGrade?: string): string =>
   [theme?.grade, lookGrade].filter(Boolean).join(' ');
 
+/** The drawing world, scaled to cover the canvas: a 9:16 or 1:1 film is a
+ * centred crop of the same staging, never a squashed 16:9 frame. */
+const World: React.FC<{ w: number; h: number; focal?: number; children: React.ReactNode }> = ({ w, h, focal = 0.5, children }) => {
+  const c = coverTransform(w, h, focal);
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width: WORLD_W,
+        height: WORLD_H,
+        transform: `translate(${c.x}px, ${c.y}px) scale(${c.scale})`,
+        transformOrigin: '0 0',
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
 export type EpisodeProps = {
   timeline: Timeline;
   shots: ShotMap;
@@ -151,6 +191,9 @@ export type EpisodeProps = {
   vignette?: boolean;
   bg?: string;
   theme?: ThemeDef;
+  format?: Format;
+  captions?: CaptionMode | 'none';
+  words?: Words;
 };
 
 export const Episode: React.FC<EpisodeProps> = ({
@@ -161,6 +204,9 @@ export const Episode: React.FC<EpisodeProps> = ({
   vignette = true,
   bg,
   theme,
+  format = '16:9',
+  captions = 'none',
+  words,
 }) => {
   const f = useCurrentFrame();
   const seg = segAt(tl, f);
@@ -174,17 +220,28 @@ export const Episode: React.FC<EpisodeProps> = ({
   const A = tl.audio;
   const stageBg = theme?.bg ?? bg ?? '#0E0C1E';
   const filters = pictureFilter(theme, def?.grade && lv > 0 ? def.grade(lv) : undefined);
+  const [W, H] = FORMAT_DIMS[format];
   return (
     <AbsoluteFill style={{ backgroundColor: stageBg }}>
       <AbsoluteFill style={{ transform: `translate(${x + jitter}px, ${y}px) scale(${x || y ? 1.02 : 1})`, filter: filters || undefined }}>
-        <ShotFrame>{Shot ? <Shot t={clockAt(seg, f)} len={info?.len ?? seg.b - seg.a} f={f} /> : null}</ShotFrame>
+        <World w={W} h={H} focal={focalOf(info?.focal)}>
+          <ShotFrame>{Shot ? <Shot t={clockAt(seg, f)} len={info?.len ?? seg.b - seg.a} f={f} /> : null}</ShotFrame>
+          {def?.Overlay && run ? (
+            <svg
+              width={WORLD_W}
+              height={WORLD_H}
+              viewBox={`0 0 ${WORLD_W} ${WORLD_H}`}
+              style={{ position: 'absolute', inset: 0, opacity: lv }}
+            >
+              <def.Overlay f={f} lv={lv} p={clamp((f - run.a) / (run.b - run.a))} n={run.n} />
+            </svg>
+          ) : null}
+        </World>
       </AbsoluteFill>
-      {theme ? <Wash theme={theme} /> : null}
-      <Grade f={f} grain={grain} vignette={vignette} grainAmount={theme?.grain} vignetteAmount={theme?.vignette} />
-      {def?.Overlay && run ? (
-        <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{ position: 'absolute', inset: 0, opacity: lv }}>
-          <def.Overlay f={f} lv={lv} p={clamp((f - run.a) / (run.b - run.a))} n={run.n} />
-        </svg>
+      {theme ? <Wash theme={theme} w={W} h={H} /> : null}
+      <Grade f={f} grain={grain} vignette={vignette} grainAmount={theme?.grain} vignetteAmount={theme?.vignette} w={W} h={H} />
+      {captions !== 'none' && words && words.length > 0 ? (
+        <CaptionOverlay words={words} mode={captions} fps={tl.fps} width={W} height={H} accent={theme?.accent} />
       ) : null}
       {flash ? <AbsoluteFill style={{ backgroundColor: flash.color, opacity: flash.o }} /> : null}
       {A.voice ? <Audio src={mediaSrc(A.voice)} volume={A.voiceVol ?? 1} /> : null}
@@ -202,17 +259,21 @@ export const Board: React.FC<{
   vignette?: boolean;
   bg?: string;
   theme?: ThemeDef;
-}> = ({ timeline: tl, shots, grain = true, vignette = true, bg, theme }) => {
+  format?: Format;
+}> = ({ timeline: tl, shots, grain = true, vignette = true, bg, theme, format = '16:9' }) => {
   const f = useCurrentFrame();
   const info = tl.shots[Math.min(f, tl.shots.length - 1)];
   const Shot = shots[info.id];
+  const [W, H] = FORMAT_DIMS[format];
   return (
     <AbsoluteFill style={{ backgroundColor: theme?.bg ?? bg ?? '#0E0C1E' }}>
       <AbsoluteFill style={{ filter: theme?.grade || undefined }}>
-        <ShotFrame>{Shot ? <Shot t={info.key} len={info.len} f={info.first + info.key} /> : null}</ShotFrame>
+        <World w={W} h={H} focal={focalOf(info.focal)}>
+          <ShotFrame>{Shot ? <Shot t={info.key} len={info.len} f={info.first + info.key} /> : null}</ShotFrame>
+        </World>
       </AbsoluteFill>
-      {theme ? <Wash theme={theme} /> : null}
-      <Grade f={info.key} grain={grain} vignette={vignette} grainAmount={theme?.grain} vignetteAmount={theme?.vignette} />
+      {theme ? <Wash theme={theme} w={W} h={H} /> : null}
+      <Grade f={info.key} grain={grain} vignette={vignette} grainAmount={theme?.grain} vignetteAmount={theme?.vignette} w={W} h={H} />
     </AbsoluteFill>
   );
 };
@@ -223,6 +284,8 @@ export const defineEpisode = (id: string, p: EpisodeProps) => ({
   total: p.timeline.total,
   shotCount: p.timeline.shots.length,
   Main: () => <Episode {...p} />,
-  Board: () => <Board timeline={p.timeline} shots={p.shots} grain={p.grain} vignette={p.vignette} bg={p.bg} theme={p.theme} />,
+  Board: () => (
+    <Board timeline={p.timeline} shots={p.shots} grain={p.grain} vignette={p.vignette} bg={p.bg} theme={p.theme} format={p.format} />
+  ),
 });
 export type EpisodeDef = ReturnType<typeof defineEpisode>;

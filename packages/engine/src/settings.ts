@@ -3,9 +3,9 @@ import { THEME_IDS, ThemeIdZ, type ThemeId } from './theme';
 
 // ProjectSettings: every creative decision the user makes before the studio
 // writes a single beat. Stored inside the episode (episode.settings), so the
-// renderer and the editor read the same contract as the wizard. Fields that the
-// engine cannot render yet (format, captions) are still recorded: the UI shows
-// them as "bientôt", never as a fake control.
+// renderer and the editor read the same contract as the wizard. Format and
+// captions are rendered by the engine: a 9:16 or 1:1 film is a centred crop of
+// the 1920x1080 staging, captions ride on the voice's word track.
 
 export const FORMATS = ['16:9', '9:16', '1:1'] as const;
 export const DURATIONS = [15, 24, 30, 45, 60] as const;
@@ -42,7 +42,7 @@ export type ProjectSettings = z.infer<typeof ProjectSettingsZ>;
 export const resolveSettings = (s?: Partial<ProjectSettings> | null): ProjectSettings =>
   ProjectSettingsZ.parse(s ?? {});
 
-/** Pixel dimensions the renderer will use once the format lot lands. */
+/** Pixel dimensions the renderer uses: the composition canvas for each format. */
 export const FORMAT_DIMS: Record<Format, [number, number]> = {
   '16:9': [1920, 1080],
   '9:16': [1080, 1920],

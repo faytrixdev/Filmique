@@ -1,6 +1,6 @@
 import React from 'react';
 import { Composition, registerRoot } from 'remotion';
-import { composeTimeline } from '@what-if/engine';
+import { composeTimeline, FORMAT_DIMS, resolveSettings } from '@what-if/engine';
 import type { EpisodeJson } from '@what-if/engine/schema';
 import { fpsSaaS, SaaSEpisode } from '../src/components/saas-episode';
 import { synthWords } from '../src/lib/demo-words';
@@ -31,7 +31,8 @@ registerRoot(() => (
       if (!ep) return { durationInFrames: 1 };
       const words = (props.tts?.words as never) ?? synthWords(ep.script);
       const total = composeTimeline(ep, words, { fps: fpsSaaS }).total;
-      return { durationInFrames: Math.max(1, total) };
+      const [width, height] = FORMAT_DIMS[resolveSettings(ep.settings).format];
+      return { durationInFrames: Math.max(1, total), width, height };
     }}
   />
 ));

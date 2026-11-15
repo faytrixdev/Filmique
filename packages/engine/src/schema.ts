@@ -23,6 +23,7 @@ export const ShotZ = z.object({
   set: z.string(),
   key: z.number().int().positive(),
   note: z.string().optional(),
+  focal: z.enum(['gauche', 'centre', 'droite']).optional(),
   archetype: z.string().optional(),
   archetypeProps: z.record(z.string(), z.unknown()).optional(),
 });

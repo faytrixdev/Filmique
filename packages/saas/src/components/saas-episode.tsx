@@ -1,15 +1,15 @@
 import React, { useMemo } from 'react';
-import { buildShotMap, composeTimeline, Episode, type EpisodeJson } from '@what-if/engine';
+import { buildShotMap, composeTimeline, Episode, resolveSettings, type EpisodeJson } from '@what-if/engine';
 import { themeById } from '@what-if/engine/theme';
 import { synthWords } from '../lib/demo-words';
 import { STUDIO_LOOKS } from '../lib/looks';
 import type { TtsResult } from '../lib/api-tts';
 
 // Shared by the editor's <Player> and the Lambda export bundle: the whole
-// episode as one Remotion component over its own data — real TTS words when a
+// episode as one Remotion component over its own data - real TTS words when a
 // voice job exists, the deterministic demo cadence otherwise. Audio URLs must
 // be absolute (staticFile passes those through) so a Lambda render can stream
-// them from S3.
+// them from S3. Format and captions come from the same settings the wizard wrote.
 
 export const fpsSaaS = 30;
 
@@ -19,5 +19,16 @@ export const SaaSEpisode: React.FC<{ episode: EpisodeJson; tts: TtsResult | null
   const timeline = useMemo(() => composeTimeline(episode, words, { fps: fpsSaaS, audio }), [episode, words, audio]);
   const shots = useMemo(() => buildShotMap(episode), [episode]);
   const theme = useMemo(() => themeById(episode.settings?.theme), [episode.settings?.theme]);
-  return <Episode timeline={timeline} shots={shots} looks={STUDIO_LOOKS} theme={theme} />;
+  const settings = useMemo(() => resolveSettings(episode.settings), [episode.settings]);
+  return (
+    <Episode
+      timeline={timeline}
+      shots={shots}
+      looks={STUDIO_LOOKS}
+      theme={theme}
+      format={settings.format}
+      captions={settings.captions}
+      words={words}
+    />
+  );
 };

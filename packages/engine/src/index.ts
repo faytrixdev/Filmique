@@ -17,6 +17,7 @@ export * from './prompts/system';
 export * from './sound/rules';
 export * from './sound/clips';
 export * from './episode';
+export * from './captions';
 export * from './timeline';
 export * from './archetypes';
 export * from './sets/study';

@@ -5,7 +5,7 @@ import '@what-if/engine/src/fonts';
 import { STUDIO } from './studio.config';
 import { EPISODES } from './episodes';
 import { CastSheet } from './CastSheet';
-import { LOOK_IDS, LookEpisode } from './Looks';
+import { FORMAT_DEMOS, LOOK_IDS, LookEpisode, FormatEpisode, formatDims } from './Looks';
 
 // Every episode gets two compositions: <Id> (the film) and <Id>Board (one frame per shot, at its key frame, for the
 // storyboard). Cast renders the cast sheet.
@@ -32,6 +32,21 @@ export const Root: React.FC = () => {
           {...common}
         />
       ))}
+      {FORMAT_DEMOS.map((d) => {
+        const [width, height] = formatDims[d.format];
+        return (
+          <Composition
+            key={d.id}
+            id={d.id}
+            component={FormatEpisode}
+            durationInFrames={1500}
+            defaultProps={{ format: d.format, captions: d.captions, focal: d.focal }}
+            width={width}
+            height={height}
+            fps={STUDIO.fps}
+          />
+        );
+      })}
     </>
   );
 };

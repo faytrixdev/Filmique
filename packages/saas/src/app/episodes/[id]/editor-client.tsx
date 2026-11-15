@@ -2,7 +2,7 @@
 
 import React, { useMemo, useRef, useState } from 'react';
 import { Player, type PlayerRef } from '@remotion/player';
-import { ARCHETYPES, coerceProps, composeTimeline, MUSIC, type EpisodeJson } from '@what-if/engine';
+import { ARCHETYPES, coerceProps, composeTimeline, FORMAT_DIMS, MUSIC, resolveSettings, type EpisodeJson } from '@what-if/engine';
 import { synthWords } from '@/lib/demo-words';
 import { SaaSEpisode, fpsSaaS } from '@/components/saas-episode';
 import type { TtsResult } from '@/lib/api-tts';
@@ -53,6 +53,9 @@ export default function EditorClient({
     const audio = tts ? { voice: tts.audioUrl, voiceVol: 1 } : {};
     return composeTimeline(draft, words, { fps, audio });
   }, [draft, tts]);
+
+  const [stageW, stageH] = FORMAT_DIMS[resolveSettings(draft.settings).format];
+  const stageRatio = stageW / stageH;
 
   const mutate = (fn: (d: EpisodeJson) => EpisodeJson): void => setDraft(fn);
 
@@ -183,26 +186,28 @@ export default function EditorClient({
         <div className="studio__main">
           <div className="stage">
             <div className="stage__slate">
-              <span className="card__label">Aperçu · 1920×1080</span>
+              <span className="card__label">
+                Aperçu · {stageW}×{stageH}
+              </span>
               <span className="mono faint">
                 {timecode(0)} — {timecode(timeline.total)} · {fps} i/s
               </span>
             </div>
-            {/* 1920x1080 preview scaled; true 9:16 crop is a post-render job on Lambda (MVP) */}
+            {/* The stage follows the project format: 9:16 and 1:1 are centred crops of the same staging. */}
             <Player
               ref={playerRef}
               component={SaaSEpisode}
               inputProps={{ episode: draft, tts }}
               durationInFrames={timeline.total}
               fps={fps}
-              compositionWidth={1920}
-              compositionHeight={1080}
+              compositionWidth={stageW}
+              compositionHeight={stageH}
               controls
               loop
               style={{
                 width: '100%',
-                maxWidth: 'min(100%, calc((100vh - 230px) * 16 / 9))',
-                aspectRatio: '16 / 9',
+                maxWidth: `min(100%, calc((100vh - 230px) * ${stageRatio}))`,
+                aspectRatio: `${stageW} / ${stageH}`,
                 background: '#0E0C1E',
                 margin: '0 auto',
                 display: 'block',

@@ -44,10 +44,10 @@ const SUGGESTIONS = [
   'Et si le silence durait une heure par jour ?',
 ];
 
-const FORMAT_LABEL: Record<Format, { title: string; sub: string; soon?: boolean }> = {
+const FORMAT_LABEL: Record<Format, { title: string; sub: string }> = {
   '16:9': { title: '16:9', sub: 'YouTube, site, présentation' },
-  '9:16': { title: '9:16', sub: 'Reels, TikTok, Shorts', soon: true },
-  '1:1': { title: '1:1', sub: 'Feed, carrousel', soon: true },
+  '9:16': { title: '9:16', sub: 'Reels, TikTok, Shorts' },
+  '1:1': { title: '1:1', sub: 'Feed, carrousel' },
 };
 
 const DURATION_LABEL: Record<Duration, string> = {
@@ -83,11 +83,11 @@ const RHYTHM_LABEL: Record<Rhythm, { title: string; sub: string }> = {
   nerveux: { title: 'Nerveux', sub: '12 à 18 plans' },
 };
 
-const CAPTION_LABEL: Record<Captions, { title: string; sub: string; soon?: boolean }> = {
+const CAPTION_LABEL: Record<Captions, { title: string; sub: string }> = {
   none: { title: 'Aucun', sub: 'la voix seule' },
-  bloc: { title: 'Bloc', sub: 'phrases posées en bas', soon: true },
-  mot: { title: 'Mot à mot', sub: 'un mot à la fois', soon: true },
-  karaoke: { title: 'Karaoké', sub: 'le mot dit s’allume', soon: true },
+  bloc: { title: 'Bloc', sub: 'phrases posées en bas' },
+  mot: { title: 'Mot à mot', sub: 'un mot à la fois' },
+  karaoke: { title: 'Karaoké', sub: "le mot dit s'allume" },
 };
 
 const STEPS = ['Sujet', 'Réglages', 'Script', 'Récap'];
@@ -306,7 +306,7 @@ export const NewFilm = ({ balanceMicros }: { balanceMicros: number }): React.Rea
           <div className="fieldset">
             <div className="fieldset__head">
               <span className="fieldset__label">Format</span>
-              <span className="fieldset__hint">le vertical arrive bientôt</span>
+              <span className="fieldset__hint">le cadre du film</span>
             </div>
             <div className="choice-grid">
               {FORMATS.map((f) => {
@@ -317,13 +317,11 @@ export const NewFilm = ({ balanceMicros }: { balanceMicros: number }): React.Rea
                     type="button"
                     className="choice"
                     data-on={settings.format === f}
-                    disabled={meta.soon}
                     onClick={() => set('format', f)}
                     aria-pressed={settings.format === f}
                   >
                     <span className="choice__title">{meta.title}</span>
                     <span className="choice__sub">{meta.sub}</span>
-                    {meta.soon ? <span className="choice__tag">Bientôt</span> : null}
                   </button>
                 );
               })}
@@ -493,7 +491,7 @@ export const NewFilm = ({ balanceMicros }: { balanceMicros: number }): React.Rea
           <div className="fieldset">
             <div className="fieldset__head">
               <span className="fieldset__label">Sous-titres</span>
-              <span className="fieldset__hint">moteur en préparation</span>
+              <span className="fieldset__hint">incrustés à l’image, sur la voix</span>
             </div>
             <div className="choice-grid">
               {CAPTIONS.map((c) => {
@@ -504,13 +502,11 @@ export const NewFilm = ({ balanceMicros }: { balanceMicros: number }): React.Rea
                     type="button"
                     className="choice"
                     data-on={settings.captions === c}
-                    disabled={meta.soon}
                     onClick={() => set('captions', c)}
                     aria-pressed={settings.captions === c}
                   >
                     <span className="choice__title">{meta.title}</span>
                     <span className="choice__sub">{meta.sub}</span>
-                    {meta.soon ? <span className="choice__tag">Bientôt</span> : null}
                   </button>
                 );
               })}
