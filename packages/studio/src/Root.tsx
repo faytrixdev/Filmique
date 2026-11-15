@@ -5,6 +5,7 @@ import '@what-if/engine/src/fonts';
 import { STUDIO } from './studio.config';
 import { EPISODES } from './episodes';
 import { CastSheet } from './CastSheet';
+import { LOOK_IDS, LookEpisode } from './Looks';
 
 // Every episode gets two compositions: <Id> (the film) and <Id>Board (one frame per shot, at its key frame, for the
 // storyboard). Cast renders the cast sheet.
@@ -21,6 +22,16 @@ export const Root: React.FC = () => {
         </React.Fragment>
       ))}
       <Composition id="Cast" component={CastSheet} durationInFrames={1} {...common} />
+      {LOOK_IDS.map((id) => (
+        <Composition
+          key={id}
+          id={`Look-${id}`}
+          component={LookEpisode}
+          durationInFrames={1500}
+          defaultProps={{ themeId: id }}
+          {...common}
+        />
+      ))}
     </>
   );
 };
