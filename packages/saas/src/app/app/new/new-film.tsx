@@ -11,9 +11,12 @@ import {
   FORMATS,
   NARRATIONS,
   RHYTHMS,
+  SCRIPT_CHAR_MIN,
+  SPEECH_CHARS_PER_SEC,
   TONES,
   WORLDS,
   resolveSettings,
+  scriptCharBudget,
   type Captions,
   type Duration,
   type Format,
@@ -138,8 +141,9 @@ export const NewFilm = ({ balanceMicros }: { balanceMicros: number }): React.Rea
     setSettings((s) => ({ ...s, [key]: value }));
 
   const chars = useMemo(() => (script ? script.script.reduce((n, b) => n + b.text.length, 0) : 0), [script]);
-  const budget = Math.round(settings.durationS * 8.5);
+  const budget = scriptCharBudget(settings.durationS);
   const over = chars > budget * 1.25;
+  const under = chars > 0 && chars < budget * SCRIPT_CHAR_MIN;
   const voice = VOICES.find((v) => v.id === settings.voiceId) ?? VOICES[0];
 
   const draft = async (): Promise<void> => {
@@ -216,7 +220,7 @@ export const NewFilm = ({ balanceMicros }: { balanceMicros: number }): React.Rea
     const r = await post<{ id: string }>('/api/episodes/generate', { topic, settings, script });
     if (!r.ok) {
       setBusy('');
-      setError(errorText(r, 'Script refusé par le studio.'));
+      setError(errorText(r, 'Script refusé : trop court pour la durée choisie — ajoutez du texte avant de générer.'));
       return;
     }
     router.push(`/episodes/${r.data.id}`);
@@ -548,19 +552,27 @@ export const NewFilm = ({ balanceMicros }: { balanceMicros: number }): React.Rea
                 </p>
               </div>
 
-              <div className="budget" data-over={over}>
+              <div className="budget" data-over={over} data-under={under}>
                 <div className="budget__line">
                   <span>
                     {chars} / {budget} caractères
                   </span>
                   <span className="spacer" />
                   <span className="mono faint">
-                    {script.script.length} beats · ≈ {Math.round(chars / 8.5)} s
+                    {script.script.length} beats · ≈ {Math.round(chars / SPEECH_CHARS_PER_SEC)} s
                   </span>
                 </div>
                 <div className="budget__bar">
                   <div className="budget__fill" style={{ width: `${Math.min(100, (chars / budget) * 100)}%` }} />
                 </div>
+                {under ? (
+                  <div className="budget__line" style={{ marginTop: 6 }}>
+                    <span>
+                      Trop court pour {settings.durationS} s — ajoutez ~
+                      {Math.max(1, Math.round(budget * SCRIPT_CHAR_MIN) - chars)} caractères.
+                    </span>
+                  </div>
+                ) : null}
               </div>
 
               <div className="beats">
@@ -677,7 +689,7 @@ export const NewFilm = ({ balanceMicros }: { balanceMicros: number }): React.Rea
                   <button
                     type="button"
                     className="btn btn--primary"
-                    disabled={chars < 40 || script.script.some((b) => b.text.trim().length === 0)}
+                    disabled={under || chars < 40 || script.script.some((b) => b.text.trim().length === 0)}
                     onClick={() => setLocked(true)}
                   >
                     Valider le script
@@ -783,7 +795,8 @@ export const NewFilm = ({ balanceMicros }: { balanceMicros: number }): React.Rea
             <div className="recap__row">
               <span className="recap__k">Script</span>
               <span className="recap__v">
-                {script?.script.length ?? 0} beats · {chars} caractères · ≈ {Math.round(chars / 8.5)} s
+                {script?.script.length ?? 0} beats · {chars} caractères · ≈{' '}
+                {Math.round(chars / SPEECH_CHARS_PER_SEC)} s
               </span>
               <button
                 type="button"

@@ -7,7 +7,7 @@ import { sciencePrompt } from './prompts/science';
 import { storyboardPrompt } from './prompts/storyboard';
 import { DIRECTOR_SYSTEM } from './prompts/system';
 import { soundRules } from './sound/rules';
-import { resolveSettings, type Narration, type ProjectSettings } from './settings';
+import { resolveSettings, scriptCharBudget, SCRIPT_CHAR_MAX, SCRIPT_CHAR_MIN, type Narration, type ProjectSettings } from './settings';
 import { bindVisuals, pairBeats, demandedWords, normalize, shotText } from './visuals';
 import { coerceProps } from './props-coerce';
 
@@ -103,11 +103,23 @@ export const draftScript = async (input: ComposeInput, llm: LlmProvider): Promis
   // of killing the whole compose.
   const s = resolveSettings(input.settings);
   const secs = input.durationS ?? s.durationS;
-  const target = Math.round(secs * 8.5);
-  const zod = ScriptDraftZ.refine((sc) => {
+  const target = scriptCharBudget(secs);
+  // The retry loop feeds this message back verbatim to the model: it must say
+  // where the draft stands and which way to move, not just restate the window.
+  const zod = ScriptDraftZ.superRefine((sc, ctx) => {
     const chars = scriptChars(sc);
-    return chars >= target * 0.65 && chars <= target * 1.4;
-  }, { message: `script length must total ~${target} chars (${Math.round(target * 0.65)}-${Math.round(target * 1.4)}), écris plus court` });
+    const min = Math.round(target * SCRIPT_CHAR_MIN);
+    const max = Math.round(target * SCRIPT_CHAR_MAX);
+    if (chars < min || chars > max) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          chars < min
+            ? `script trop court : ${chars} caractères, il en faut ${min}-${max} pour ${secs} s — allonge chaque beat ou ajoute un beat (${min - chars} caractères manquants)`
+            : `script trop long : ${chars} caractères, maximum ${max} pour ${secs} s — raccourcis chaque beat (${chars - max} caractères en trop)`,
+      });
+    }
+  });
   return draftStep(llm, zod, () =>
     scriptPrompt({ topic: input.topic, tone: input.tone ?? s.tone, durationS: secs, narration: s.narration }).prompt,
   );
@@ -299,8 +311,11 @@ export const adaptStoryboard = async (sb: StoryboardDraft, durationS?: number): 
   // a legible minimum and a maximum, and the rounding drift is spread over the longest shots.
   if (durationS && durationS > 3 && shots.length > 0) {
     const MIN_KEY = 14;
-    const MAX_KEY = 240;
     const target = Math.round(durationS * fps) - Math.round(sb.tail * fps);
+    // A sparse long film (4-6 beats at 60 s) needs shots longer than the usual
+    // 8 s cap to fill the plan: cap at the average when that is higher, so the
+    // sound clock (built from the keys) always reaches the requested duration.
+    const MAX_KEY = Math.max(240, Math.ceil(target / shots.length));
     const sum = shots.reduce((n, s) => n + s.key, 0);
     if (sum > 0 && target > MIN_KEY * shots.length && Math.abs(sum - target) / target > 0.02) {
       const ratio = target / sum;
@@ -358,7 +373,9 @@ export const composeScript = (input: ComposeInput, llm: LlmProvider): Promise<Sc
 
 /** Phase 2: a validated script becomes a full episode (science → shots → sound). */
 export const composeFromScript = async (input: ComposeInput, script: ScriptDraft, llm: LlmProvider): Promise<EpisodeDraft> => {
-  const s = resolveSettings(input.settings);
+  // Top-level durationS (compose-cli --secs) is part of the settings contract:
+  // persist it, or the episode records 24 s while the prompts said 60.
+  const s = resolveSettings({ ...input.settings, ...(input.durationS ? { durationS: input.durationS } : {}) });
   const voiceId = input.voiceId ?? s.voiceId;
   const science = await draftScience(script, llm);
   const sb = await draftStoryboard(input, script, science, llm);

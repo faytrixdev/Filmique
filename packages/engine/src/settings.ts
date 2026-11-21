@@ -15,6 +15,19 @@ export const RHYTHMS = ['pose', 'standard', 'nerveux'] as const;
 export const WORLDS = ['urbain', 'maison', 'ecole', 'cosmos', 'public'] as const;
 export const CAPTIONS = ['none', 'bloc', 'mot', 'karaoke'] as const;
 
+// Measured speech rate of the shipped voices: characters spoken per second
+// (3 studio episodes: 15.9 / 16.1 / 15.7 car/s). Every script-length budget in
+// the pipeline goes through scriptCharBudget so the wizard, the prompt and the
+// Zod refine can never disagree again.
+export const SPEECH_CHARS_PER_SEC = 16;
+
+/** Characters a script needs to fill `secs` of film (voice + beat gaps + tail). */
+export const scriptCharBudget = (secs: number): number => Math.round((secs - 3) * SPEECH_CHARS_PER_SEC);
+
+/** Acceptance window around the budget for a validated script (±15%). */
+export const SCRIPT_CHAR_MIN = 0.85;
+export const SCRIPT_CHAR_MAX = 1.15;
+
 export type Format = (typeof FORMATS)[number];
 export type Duration = (typeof DURATIONS)[number];
 export type Tone = (typeof TONES)[number];

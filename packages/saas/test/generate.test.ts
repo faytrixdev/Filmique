@@ -3,7 +3,8 @@ import { generateEpisode } from '../src/lib/generate-flow';
 import { postGenerate } from '../src/lib/api-generate';
 import { draftScriptFor, rewriteBeat } from '../src/lib/script-flow';
 import { MockLlmProvider } from '@what-if/engine/providers/llm';
-import { composeMockQueue, SCRIPT_JSON, SCIENCE_JSON, STORYBOARD_JSON } from '@what-if/engine/compose-mock';
+import { composeMockQueue, SCRIPT_JSON, SCIENCE_JSON, STORYBOARD_JSON, padScript } from '@what-if/engine/compose-mock';
+import { scriptCharBudget } from '@what-if/engine/settings';
 import type { EpisodeRepo, EpisodeRow } from '../src/lib/episodes';
 
 const epRepo = (): EpisodeRepo & { rows: Map<string, EpisodeRow> } => {
@@ -78,6 +79,31 @@ describe('generateEpisode', () => {
     // Only science + storyboard are queued: a script draft would break the queue.
     const res = await generateEpisode({ repo, userId: 'u1' }, new MockLlmProvider([SCIENCE_JSON, STORYBOARD_JSON]), {
       topic: 'Et si le pain tombait du ciel ?',
+      script: padScript(
+        {
+          title: ['LE PAIN', 'TOMBE'],
+          script: [
+            { beat: 'hook', text: 'Une averse éclate au-dessus de la ville.' },
+            { beat: 'premise', text: 'Le pain pousse sur les toits depuis ce matin.' },
+            { beat: 'twist', text: 'Il faudrait 1 000 averses pour nourrir un immeuble.' },
+            { beat: 'question', text: 'Mairie? elle taxe le pain?' },
+          ],
+        },
+        scriptCharBudget(24),
+      ),
+    });
+    expect(res.status).toBe(201);
+    if (res.status !== 201) return;
+    expect(res.row.episode.script[0].text).toContain('averse');
+    expect(res.row.episode.title.join(' ')).toContain('PAIN');
+  });
+
+  it('a script too short for the chosen duration is refused', async () => {
+    const repo = epRepo();
+    // 159 chars is a 10 s script: fine at 15 s, nowhere near a 60 s film.
+    const res = await generateEpisode({ repo, userId: 'u1' }, llm(), {
+      topic: 'Et si le pain tombait du ciel ?',
+      settings: { durationS: 60 },
       script: {
         title: ['LE PAIN', 'TOMBE'],
         script: [
@@ -88,10 +114,8 @@ describe('generateEpisode', () => {
         ],
       },
     });
-    expect(res.status).toBe(201);
-    if (res.status !== 201) return;
-    expect(res.row.episode.script[0].text).toContain('averse');
-    expect(res.row.episode.title.join(' ')).toContain('PAIN');
+    expect(res).toMatchObject({ status: 400, error: 'bad_script' });
+    expect(repo.rows.size).toBe(0);
   });
 
   it('a malformed script is refused before any LLM call', async () => {
@@ -106,7 +130,9 @@ describe('generateEpisode', () => {
 
   it('the settings are stored with the episode', async () => {
     const repo = epRepo();
-    const res = await generateEpisode({ repo, userId: 'u1' }, llm(), {
+    // 45 s widens the script budget: the canned draft must be padded to fit it.
+    const queue = [JSON.stringify(padScript(JSON.parse(SCRIPT_JSON), scriptCharBudget(45))), SCIENCE_JSON, STORYBOARD_JSON];
+    const res = await generateEpisode({ repo, userId: 'u1' }, new MockLlmProvider(queue), {
       topic: 'Et si le pain tombait du ciel ?',
       settings: { durationS: 45, world: 'urbain', tone: 'tense', narration: 'prof', rhythm: 'nerveux' },
     });

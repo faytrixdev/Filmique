@@ -1,7 +1,7 @@
 import { EpisodeJsonZ, type EpisodeJson } from '@what-if/engine/schema';
 import { composeEpisode, composeFromScript, ScriptDraftZ, type ScriptDraft } from '@what-if/engine/compose';
 import type { LlmProvider } from '@what-if/engine/providers/llm';
-import type { ProjectSettings } from '@what-if/engine/settings';
+import { resolveSettings, scriptCharBudget, SCRIPT_CHAR_MIN, type ProjectSettings } from '@what-if/engine/settings';
 import type { EpisodeRepo, EpisodeRow } from './episodes';
 
 // New episode: topic (→ script) → compose → Zod gate → stored row. When the
@@ -28,6 +28,11 @@ export const generateEpisode = async (
     const checkedScript = ScriptDraftZ.safeParse(input.script);
     if (!checkedScript.success) return { status: 400, error: 'bad_script' };
     script = checkedScript.data;
+    // The wizard gates this too, but the API is the contract: a script that
+    // cannot fill the chosen duration would ship a film far shorter than asked.
+    const target = scriptCharBudget(resolveSettings(input.settings).durationS);
+    const chars = script.script.reduce((n, b) => n + b.text.length, 0);
+    if (chars < target * SCRIPT_CHAR_MIN) return { status: 400, error: 'bad_script' };
   }
 
   let episode: EpisodeJson;

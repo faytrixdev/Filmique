@@ -3,8 +3,8 @@ import { MockLlmProvider, extractJson } from '../src/providers';
 import { EpisodeJsonZ } from '../src/schema';
 import { CLIPS, MUSIC } from '../src/sound/clips';
 import { composeEpisode, composeScript, composeFromScript, draftScript, draftScience, draftSound, ScriptDraftZ, ScriptDraft, adaptStoryboard, hardenStoryboard, StoryboardDraftZ, type StoryboardDraft } from '../src/compose';
-import { resolveSettings } from '../src/settings';
-import { SCRIPT_JSON, SCIENCE_JSON, STORYBOARD_JSON } from '../src/compose-mock';
+import { resolveSettings, scriptCharBudget, SCRIPT_CHAR_MAX, SCRIPT_CHAR_MIN } from '../src/settings';
+import { SCRIPT_JSON, SCIENCE_JSON, STORYBOARD_JSON, padScript } from '../src/compose-mock';
 
 const mockSteps = (...jsons: string[]) => new MockLlmProvider(jsons);
 
@@ -21,9 +21,15 @@ describe('draftScript', () => {
     expect(draft.accent).toBeTypeOf('string');
   });
 
-  it('sanity: script length far from ~8.5 chars/s throws', async () => {
+  it('sanity: script length far from the 16 chars/s budget throws', async () => {
     const short = JSON.stringify({ title: ['TROP COURT'], script: [{ beat: 'hook', text: 'Trop court, ça.' }, { beat: 'premise', text: 'Vraiment trop court.' }, { beat: 'twist', text: 'Court quand même.' }, { beat: 'question', text: 'Court?' }] });
-    await expect(draftScript({ topic: 'x' }, mockSteps(short, short, short, short))).rejects.toThrow(/script length/);
+    await expect(draftScript({ topic: 'x' }, mockSteps(short, short, short, short))).rejects.toThrow(/trop court/);
+  });
+
+  it('a 24 s script is rejected when 60 s is asked (the duration bug)', async () => {
+    // SCRIPT_JSON totals 345 chars: valid for 24 s, far below the 912-char
+    // budget of a 60 s film — the old 8.5 chars/s gate used to accept it.
+    await expect(draftScript({ topic: 'x', durationS: 60 }, mockSteps(SCRIPT_JSON, SCRIPT_JSON, SCRIPT_JSON, SCRIPT_JSON))).rejects.toThrow(/trop court/);
   });
 
   it('a too-long draft re-enters the retry loop instead of failing the compose', async () => {
@@ -35,8 +41,9 @@ describe('draftScript', () => {
   it('the length gate itself is bounded (spot check)', async () => {
     const draft = ScriptDraftZ.parse(extractJson(SCRIPT_JSON)) as ScriptDraft;
     const chars = draft.script.reduce((n, b) => n + b.text.length, 0);
-    expect(chars).toBeGreaterThan(24 * 8.5 * 0.7);
-    expect(chars).toBeLessThan(24 * 8.5 * 1.3);
+    const target = scriptCharBudget(24);
+    expect(chars).toBeGreaterThanOrEqual(target * SCRIPT_CHAR_MIN);
+    expect(chars).toBeLessThanOrEqual(target * SCRIPT_CHAR_MAX);
   });
 });
 
@@ -188,11 +195,22 @@ describe('project settings', () => {
   it('the episode carries the settings, and the duration drives the script budget', async () => {
     const { episode } = await composeEpisode(
       { topic: 'Et si le pain tombait du ciel ?', settings: { durationS: 45, tone: 'tense' } },
-      mockSteps(SCRIPT_JSON, SCIENCE_JSON, STORYBOARD_JSON),
+      mockSteps(JSON.stringify(padScript(JSON.parse(SCRIPT_JSON), scriptCharBudget(45))), SCIENCE_JSON, STORYBOARD_JSON),
     );
     expect(episode.settings?.durationS).toBe(45);
     expect(episode.settings?.tone).toBe('tense');
     expect(episode.sound.music.clip).toBe('tense');
+  });
+
+  it('a top-level durationS (compose-cli --secs) is persisted into episode.settings', async () => {
+    const script = ScriptDraftZ.parse(extractJson(SCRIPT_JSON)) as ScriptDraft;
+    const { episode } = await composeFromScript(
+      { topic: 'Et si le pain tombait du ciel ?', durationS: 60 },
+      script,
+      mockSteps(SCIENCE_JSON, STORYBOARD_JSON),
+    );
+    expect(episode.settings?.durationS).toBe(60);
+    expect(episode.shots.reduce((n, s) => n + s.key, 0) + Math.round(episode.tail * 30)).toBe(60 * 30);
   });
 
   it('the film look is stored with the episode', async () => {

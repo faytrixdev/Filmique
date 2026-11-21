@@ -1,6 +1,6 @@
 import { composeScript, rewriteBeatDraft, type ScriptDraft } from '@what-if/engine/compose';
 import type { LlmProvider } from '@what-if/engine/providers/llm';
-import { resolveSettings, type ProjectSettings } from '@what-if/engine/settings';
+import { resolveSettings, scriptCharBudget, type ProjectSettings } from '@what-if/engine/settings';
 
 // Phase 1 of the script-first flow: the beats alone, before any mise en scène.
 // Rewriting reuses the engine's LLM step machinery (retry with the Zod failure
@@ -42,7 +42,7 @@ export const rewriteBeat = async (
   if (!llm) return { status: 503, error: 'unconfigured' };
   const s = resolveSettings(input.settings);
   // One beat should stay a fraction of the film: cap it at a third of the script.
-  const budget = Math.max(60, Math.round((s.durationS * 8.5) / 3));
+  const budget = Math.max(60, Math.round(scriptCharBudget(s.durationS) / 3));
   try {
     const draft = await rewriteBeatDraft(
       {

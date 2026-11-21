@@ -36,27 +36,27 @@ exports[`composeEpisode (whole pipeline, mocked) > keeps science forcasting from
   "script": [
     {
       "beat": "hook",
-      "text": "Une averse éclate au-dessus de la ville.",
+      "text": "Une averse éclate au-dessus de la ville, en plein soleil.",
     },
     {
       "beat": "premise",
-      "text": "Le pain pousse sur les toits depuis ce matin.",
+      "text": "Le pain pousse sur les toits depuis ce matin, sans un mot.",
     },
     {
       "beat": "evidence",
-      "text": "L'INSEE suit la survie des boulangeries chaque automne.",
+      "text": "L'INSEE y voit le signe de la fin des boulangeries de quartier.",
     },
     {
       "beat": "evidence",
-      "text": "Un toit parisien couvre 60 mètres carrés.",
+      "text": "Un toit parisien moyen couvre exactement 60 mètres carrés.",
     },
     {
       "beat": "twist",
-      "text": "Il faudrait 1 000 averses pour nourrir un immeuble.",
+      "text": "Il faudrait 1 000 averses pour nourrir un immeuble de 300 âmes.",
     },
     {
       "beat": "question",
-      "text": "Mairie? elle taxe le pain?",
+      "text": "Et si la mairie taxait le pain tombé du ciel ?",
     },
   ],
   "settings": {
