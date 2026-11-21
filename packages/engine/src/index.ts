@@ -27,3 +27,6 @@ export * from './sets/rooftop';
 export * from './sets/kitchen';
 export * from './sets/schematic';
 export * from './sets/bedroom';
+export * from './sets/cantine';
+export * from './sets/office';
+export * from './visuals';

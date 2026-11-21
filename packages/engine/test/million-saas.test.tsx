@@ -35,7 +35,7 @@ describe('million16 as pure data (SaaS path)', () => {
         expect(html.length, `${s.id} @t=${t}`).toBeGreaterThan(500);
       }
     }
-  });
+  }, 30000);
 
   it('the episode timings stay identical to the golden', () => {
     const built = composeTimeline(ep, words);

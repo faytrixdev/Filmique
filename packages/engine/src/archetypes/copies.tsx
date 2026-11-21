@@ -374,19 +374,20 @@ export const GhostFlicker: React.FC<Arch & GhostFlickerProps> = ({ t, len, item 
 
 // ---------- plantGrid: the schematic, every power plant lights up, the dial runs over ten minutes ----------
 export const plantGridZ = z.object({
-  title: z.string().default('TOUTES LES CENTRALES DU MONDE'),
-  maxMinutes: z.number().positive().default(12.7),
-  unit: z.string().default('MINUTES POUR UN BISCUIT'),
-  over: z.string().default('PLUS DE 10 MINUTES'),
+  title: z.string().default(''),
+  maxMinutes: z.number().positive().default(0),
+  unit: z.string().default(''),
+  over: z.string().default(''),
   runAt: z.number().int().nonnegative().default(14),
   span: z.number().int().positive().default(66),
 });
 export type PlantGridProps = z.infer<typeof plantGridZ>;
 
-export const PlantGrid: React.FC<Arch & PlantGridProps> = ({ t, title = 'TOUTES LES CENTRALES DU MONDE', maxMinutes = 12.7, unit = 'MINUTES POUR UN BISCUIT', over = 'PLUS DE 10 MINUTES', runAt = 14, span = 66 }) => {
+export const PlantGrid: React.FC<Arch & PlantGridProps> = ({ t, title = '', maxMinutes = 0, unit = '', over = '', runAt = 14, span = 66 }) => {
   const KINDS: ('tower' | 'wind' | 'solar' | 'dam' | 'factory')[] = ['tower', 'wind', 'solar', 'dam', 'factory'];
   const mins = maxMinutes * Math.pow(easeIn(clamp((t - runAt) / span)), 0.6);
   const read = `${String(Math.floor(mins)).padStart(2, '0')}:${String(Math.floor((mins % 1) * 60 + 0.01)).padStart(2, '0')}`;
+  const p = maxMinutes > 0 ? clamp(mins / maxMinutes) : 0;
   return (
     <g>
       <Schematic t={t + 62} id="ar-schpg" />
@@ -397,7 +398,7 @@ export const PlantGrid: React.FC<Arch & PlantGridProps> = ({ t, title = 'TOUTES 
         const order = (col * 3 + row * 7) % 15;
         return <PlantIcon key={i} x={220 + col * 200} y={330 + row * 230} kind={KINDS[(i + row) % 5]} on={clamp((t - 4 - order * 3) / 6)} t={t} s={0.95} />;
       })}
-      <Dial x={1500} y={500} p={clamp(mins / maxMinutes)} readout={read} r={210} size={92} />
+      <Dial x={1500} y={500} p={p} readout={read} r={210} size={92} />
       <SchLabel x={1500} y={800} t={t - 10} text={unit} size={36} color={SCH.dim} />
       {mins > Math.max(10, maxMinutes * 0.8) ? <SchLabel x={1500} y={220} t={t - runAt - span} text={over} size={50} color={SCH.live} /> : null}
     </g>

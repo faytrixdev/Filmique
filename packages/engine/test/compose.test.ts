@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MockLlmProvider, extractJson } from '../src/providers';
 import { EpisodeJsonZ } from '../src/schema';
 import { CLIPS, MUSIC } from '../src/sound/clips';
-import { composeEpisode, composeScript, composeFromScript, draftScript, draftScience, draftSound, ScriptDraftZ, ScriptDraft, adaptStoryboard, StoryboardDraftZ, type StoryboardDraft } from '../src/compose';
+import { composeEpisode, composeScript, composeFromScript, draftScript, draftScience, draftSound, ScriptDraftZ, ScriptDraft, adaptStoryboard, hardenStoryboard, StoryboardDraftZ, type StoryboardDraft } from '../src/compose';
 import { resolveSettings } from '../src/settings';
 import { SCRIPT_JSON, SCIENCE_JSON, STORYBOARD_JSON } from '../src/compose-mock';
 
@@ -72,12 +72,26 @@ describe('adaptStoryboard', () => {
     expect(adapted.tail).toBe(1);
   });
 
-  it('falls back to wideRoom on an unknown archetype but keeps the shot', async () => {
+  it('falls back to the generic scene on an unknown archetype but keeps the shot', async () => {
     const sb = StoryboardDraftZ.parse(extractJson(STORYBOARD_JSON)) as StoryboardDraft;
     const bad = { ...sb, shots: sb.shots.map((s, i) => (i === 2 ? { ...s, archetype: 'nonexistent' } : s)) };
     const adapted = await adaptStoryboard(bad, undefined);
-    expect(adapted.shots[2].archetype).toBe('wideRoom');
+    expect(adapted.shots[2].archetype).toBe('scene');
     expect(adapted.shots.length).toBe(6);
+  });
+
+  it('falls back to the generic scene when an archetype misses the props it needs', async () => {
+    const sb = StoryboardDraftZ.parse(extractJson(STORYBOARD_JSON)) as StoryboardDraft;
+    const bad = { ...sb, shots: sb.shots.map((s, i) => (i === 0 ? { ...s, archetype: 'phoneJump', archetypeProps: {} } : s)) };
+    const adapted = await adaptStoryboard(bad, undefined);
+    expect(adapted.shots[0].archetype).toBe('scene');
+  });
+
+  it('gives the generic scene the set the plan asked for', async () => {
+    const sb = StoryboardDraftZ.parse(extractJson(STORYBOARD_JSON)) as StoryboardDraft;
+    const bad = { ...sb, shots: sb.shots.map((s, i) => (i === 0 ? { ...s, archetype: 'scene', set: 'cantine', archetypeProps: {} } : s)) };
+    const adapted = await adaptStoryboard(bad, undefined);
+    expect(adapted.shots[0].archetypeProps).toMatchObject({ set: 'cantine' });
   });
 
   it('coerces drifted props (string numbers, invented enums) instead of dropping them', async () => {
@@ -101,6 +115,34 @@ describe('draftSound (deterministic from the storyboard)', () => {
   });
 });
 
+describe('hardenStoryboard (the rules the model breaks)', () => {
+  const title = ['CANTINE GRATUITE', 'UN REVE'];
+  const pizza = [{ beat: 'question', text: 'Qui finira par payer la pizza qui tourne au plafond ?' }];
+  const shot = (id: string, archetype: string, archetypeProps: Record<string, unknown>) => ({ id, archetype, archetypeProps, key: 40, set: 'rooftop', size: 'wide', note: '' });
+
+  it('moves the title shot to the end of the film', () => {
+    const out = hardenStoryboard(
+      [shot('S1', 'titleReveal', { lines: ['CANTINE GRATUITE', 'UN REVE'] }), shot('S2', 'closeUpTurn', {})] as StoryboardDraft['shots'],
+      title,
+      pizza,
+    );
+    expect(out.map((s) => s.archetype)).toEqual(['closeUpTurn', 'titleReveal']);
+  });
+
+  it('labels the object with the beat noun when the label names nothing in the beat', () => {
+    const object = { kind: 'ticket', label: 'FINIRA', x: 0.72, y: 0.55, s: 1, rot: 0, at: 2, anim: 'pop' };
+    const out = hardenStoryboard([shot('S1', 'scene', { objects: [object] })] as StoryboardDraft['shots'], title, pizza);
+    expect((out[0].archetypeProps as { objects: { label: string }[] }).objects[0].label).toBe('PIZZA');
+  });
+
+  it('keeps a label the beat already supports', () => {
+    const object = { kind: 'tray', label: 'PLATEAU', x: 0.72, y: 0.55, s: 1, rot: 0, at: 2, anim: 'pop' };
+    const beats = [{ beat: 'hook', text: 'Léa attrape un plateau, un sourire aux lèvres.' }];
+    const out = hardenStoryboard([shot('S1', 'scene', { objects: [object] })] as StoryboardDraft['shots'], title, beats);
+    expect((out[0].archetypeProps as { objects: { label: string }[] }).objects[0].label).toBe('PLATEAU');
+  });
+});
+
 describe('composeEpisode (whole pipeline, mocked)', () => {
   it('produces an episode json that parses, with the sound, the edits', async () => {
     const { episode } = await composeEpisode({ topic: 'Et si le pain tombait du ciel ?', tone: 'playful' }, mockSteps(SCRIPT_JSON, SCIENCE_JSON, STORYBOARD_JSON));
@@ -110,9 +152,9 @@ describe('composeEpisode (whole pipeline, mocked)', () => {
     expect(episode.sound.events.length).toBeGreaterThan(3);
     expect(episode.sound.music.clip).toBe('playful');
     expect(EpisodeJsonZ.safeParse(episode).success).toBe(true);
-    // storyboard untouched by duration (no durationS given): keys = 271 + tail 1.0s*30 = 301
+    // the plan is rescaled to fill the requested duration (settings default: 24 s at 30 fps)
     const sum = episode.shots.reduce((n: number, s: { key: number }) => n + s.key, 0);
-    expect(sum + 30).toBe(301);
+    expect(sum + Math.round(episode.tail * 30)).toBe(720);
     expect(JSON.parse(JSON.stringify(episode)).fx).toEqual([{ at: 's:2.2', kind: 'flash' }]);
   });
 

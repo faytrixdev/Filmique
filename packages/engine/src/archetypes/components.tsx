@@ -16,7 +16,7 @@ import { Study, Desk } from '../sets/study';
 import { Classroom, SchoolDesk } from '../sets/classroom';
 import { Rooftop } from '../sets/rooftop';
 import { Schematic, SCH, Arrow, SchLabel, DrawOn, CountUp } from '../sets/schematic';
-import { BankPhone, Ring, CoinHead, CoinPile, Cake, BalanceChip, GOLD, GOLD_L, fmtEur } from './widgets';
+import { BankPhone, Ring, CoinHead, CoinPile, Cake, BalanceChip, GOLD, GOLD_L, fmtEur, fmtVal } from './widgets';
 
 // The archetype catalogue: one component per recurring shot motif. Props are plain
 // values (labels, numbers, booleans) the LLM fills in — never raw SVG. Each
@@ -30,6 +30,7 @@ export const wideRoomZ = z.object({
   mood: z.enum(['curious', 'cheer', 'uneasy']).default('curious'),
   room: z.enum(['kitchen', 'study']).default('kitchen'),
   phone: z.string().default(''),
+  phoneLabel: z.string().default(''),
   glow: z.number().min(0).max(1).default(0.6),
   ring: z.boolean().default(false),
   buzz: z.boolean().default(false),
@@ -125,8 +126,9 @@ export const WideRoom: React.FC<Arch & WideRoomProps> = ({ t, len, uid = 'wr', m
 
 // ---------- phoneJump (S2): macro on the phone, the balance jumps to a new value ----------
 export const phoneJumpZ = z.object({
-  fromEur: z.number().default(312.44),
-  toEur: z.number().max(9999999).default(1000000),
+  from: z.number(),
+  to: z.number().max(9999999),
+  unit: z.string().default(''),
   jumpAt: z.number().int().nonnegative().default(5),
   settleAt: z.number().int().positive().default(18),
   sparkleAt: z.number().int().nonnegative().default(20),
@@ -135,9 +137,9 @@ export const phoneJumpZ = z.object({
 });
 export type PhoneJumpProps = z.infer<typeof phoneJumpZ>;
 
-export const PhoneJump: React.FC<Arch & PhoneJumpProps> = ({ t, len, uid = 'pj', fromEur, toEur, jumpAt, settleAt, sparkleAt, cake, handc }) => {
-  const roll = fromEur + (toEur - fromEur) * easeOut(clamp((t - jumpAt) / 13));
-  const value = t < jumpAt ? fmtEur(fromEur) : t < settleAt ? fmtEur(roll) : fmtEur(toEur);
+export const PhoneJump: React.FC<Arch & PhoneJumpProps> = ({ t, len, uid = 'pj', from, to, unit, jumpAt, settleAt, sparkleAt, cake, handc }) => {
+  const roll = from + (to - from) * easeOut(clamp((t - jumpAt) / 13));
+  const value = t < jumpAt ? fmtVal(from, unit) : t < settleAt ? fmtVal(roll, unit) : fmtVal(to, unit);
   const jx = t >= jumpAt && t < settleAt ? (rnd(Math.floor(t), 3) - 0.5) * 6 : 0;
   const hand = { x: kf(t, [[0, 1150], [8, 1080], [12, 1072], [18, 1096]]), y: kf(t, [[0, 240], [8, 330], [12, 338], [18, 318]]) };
   return (
@@ -177,21 +179,22 @@ export const PhoneJump: React.FC<Arch & PhoneJumpProps> = ({ t, len, uid = 'pj',
 
 // ---------- phoneDrain (S8): the balance bleeds out over the purchases ----------
 export const phoneDrainZ = z.object({
-  fromEur: z.number().default(1000000),
-  toEur: z.number().default(12),
+  from: z.number(),
+  to: z.number(),
+  unit: z.string().default(''),
   startAt: z.number().int().nonnegative().default(5),
-  drains: z.array(z.object({ at: z.number().int().nonnegative(), text: z.string() })).default([{ at: 9, text: '- 249,99 €' }, { at: 17, text: '- 4 800,00 €' }, { at: 25, text: '- 12 000,00 €' }]),
+  drains: z.array(z.object({ at: z.number().int().nonnegative(), text: z.string() })).default([]),
   glowEnd: z.number().min(0).max(1).default(0.45),
   sparkleAt: z.number().int().nonnegative().default(28),
   handIn: z.boolean().default(true),
 });
 export type PhoneDrainProps = z.infer<typeof phoneDrainZ>;
 
-export const PhoneDrain: React.FC<Arch & PhoneDrainProps> = ({ t, len, uid = 'pd', fromEur, toEur, startAt, drains, glowEnd, sparkleAt, handIn }) => {
+export const PhoneDrain: React.FC<Arch & PhoneDrainProps> = ({ t, len, uid = 'pd', from, to, unit, startAt, drains, glowEnd, sparkleAt, handIn }) => {
   const span = 26;
   const k = easeIn(clamp((t - startAt) / span));
-  const v = fromEur - (fromEur - toEur) * k;
-  const value = t < startAt ? fmtEur(fromEur) : fmtEur(v);
+  const v = from - (from - to) * k;
+  const value = t < startAt ? fmtVal(from, unit) : fmtVal(v, unit);
   const lastDrain = drains.reduce((m, d) => Math.max(m, d.at), 0);
   return (
     <g transform={camT(960, kf(t, [[0, 520], [len, 545]]), kf(t, [[0, 1.02], [len, 1.1]]))}>
@@ -233,17 +236,18 @@ export const PhoneDrain: React.FC<Arch & PhoneDrainProps> = ({ t, len, uid = 'pd
 
 // ---------- phoneRestore (S9): extreme close on the screen, it rewrites itself back ----------
 export const phoneRestoreZ = z.object({
-  fromEur: z.number().default(12),
-  toEur: z.number().max(9999999).default(1000000),
+  from: z.number(),
+  to: z.number().max(9999999),
+  unit: z.string().default(''),
   at: z.number().int().nonnegative().default(9),
-  pill: z.string().default('SOLDE RESTAURÉ'),
+  pill: z.string().default(''),
 });
 export type PhoneRestoreProps = z.infer<typeof phoneRestoreZ>;
 
-export const PhoneRestore: React.FC<Arch & PhoneRestoreProps> = ({ t, len, fromEur, toEur, at, pill }) => {
+export const PhoneRestore: React.FC<Arch & PhoneRestoreProps> = ({ t, len, from, to, unit, at, pill }) => {
   const snap = clamp((t - at) / 9);
-  const v = t < at ? fromEur : fromEur + (toEur - fromEur) * backOut(snap);
-  const value = t < at ? fmtEur(fromEur) : fmtEur(v);
+  const v = t < at ? from : from + (to - from) * backOut(snap);
+  const value = t < at ? fmtVal(from, unit) : fmtVal(v, unit);
   const jitter = t >= at && t < at + 12 ? (rnd(Math.floor(t), 4) - 0.5) * 8 : 0;
   const pulse = t >= at + 12 ? 1 + Math.sin((t - at - 12) / 4.2) * 0.015 : 1;
   return (
@@ -281,7 +285,7 @@ export const PhoneRestore: React.FC<Arch & PhoneRestoreProps> = ({ t, len, fromE
 
 // ---------- tagObject (S4): the study desk, the object on it gets a tag ----------
 export const tagObjectZ = z.object({
-  tag: z.string().default('PAYÉ'),
+  tag: z.string(),
   mark: z.enum(['x', 'check']).default('check'),
 });
 export type TagObjectProps = z.infer<typeof tagObjectZ>;
@@ -323,6 +327,7 @@ export const pilesLandZ = z.object({
   piles: z.array(z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1), n: z.number().int().min(2).max(9), at: z.number().int().nonnegative() })).default([]),
   slide: z.boolean().default(false),
   book: z.boolean().default(false),
+  phoneValue: z.string().default(''),
 });
 export type PilesLandProps = z.infer<typeof pilesLandZ>;
 
@@ -332,7 +337,7 @@ const fallY = (t: number, at: number, y: number, off: number, dur = 9) => {
   return (1 - k) * (y - off) + y * k + bounce;
 };
 
-export const PilesLand: React.FC<Arch & PilesLandProps> = ({ t, piles, slide, book }) => {
+export const PilesLand: React.FC<Arch & PilesLandProps> = ({ t, piles, slide, book, phoneValue = '' }) => {
   const piles_ = piles.length
     ? piles
     : slide
@@ -354,14 +359,14 @@ export const PilesLand: React.FC<Arch & PilesLandProps> = ({ t, piles, slide, bo
       <LightVeil id="veil-pl" lights={[[900, 470, 720]]} o={0.48} />
       {book ? <OpenBook x={330} y={360} w={330} rot={-9} /> : null}
       <g transform="rotate(-14 1560 220)">
-        <rect x={1380} y={130} width={420} height={280} rx={14} fill="#2E3A5E" />
-        <path d="M 1420 130 L 1420 410 M 1540 130 L 1540 410" stroke={GOLD} strokeWidth={12} opacity={0.85} />
+        <rect x={1320} y={180} width={380} height={250} rx={14} fill="#2E3A5E" />
+        <path d="M 1356 180 L 1356 430 M 1465 180 L 1465 430" stroke={GOLD} strokeWidth={12} opacity={0.85} />
       </g>
       <rect x={120} y={880} width={340} height={16} rx={8} fill={GOLD} transform="rotate(-30 290 888)" />
-      {!slide && !book ? (
+      {!slide && !book && phoneValue ? (
         <>
           <ellipse cx={420} cy={300} rx={120} ry={40} fill="#000" opacity={0.3} />
-          <BankPhone x={420} y={300} w={150} rot={-20} value="1 000 000 €" glow={0.8} gold />
+          <BankPhone x={420} y={300} w={150} rot={-20} value={phoneValue} glow={0.8} gold />
         </>
       ) : null}
       {piles_.map((p, i) => (
@@ -456,7 +461,8 @@ export const titleRevealZ = z.object({
   variant: z.enum(['raise', 'cheer']).default('raise'),
   accent: z.string().optional(),
   accentT: z.number().int().nonnegative().default(38),
-  phone: z.boolean().default(true),
+  phone: z.boolean().default(false),
+  phoneValue: z.string().default(''),
   cat: z.boolean().default(true),
   sparkle: z.boolean().default(true),
   stacks: z.array(z.object({ x: z.number(), n: z.number().int().min(2).max(12), at: z.number().int().nonnegative().default(6) })).default([]),
@@ -466,8 +472,11 @@ export const titleRevealZ = z.object({
 export type TitleRevealProps = z.infer<typeof titleRevealZ>;
 const ROOF_FEET = 840;
 
-export const TitleReveal: React.FC<Arch & TitleRevealProps> = ({ t, len, lines, variant = 'raise', accent, accentT, phone, cat, sparkle, stacks, size, y }) => {
+export const TitleReveal: React.FC<Arch & TitleRevealProps> = ({ t, len, lines, variant = 'raise', accent, accentT, phone, phoneValue = '', cat, sparkle, stacks, size, y }) => {
   const cheer = variant === 'cheer';
+  // `y`/`size` are pixels: a model that writes a 0..1 fraction would push the title off-frame (or over the hero)
+  const yPx = Math.max(90, Math.min(620, y <= 1 ? 150 + y * 220 : y));
+  const sizePx = size < 40 ? 92 : Math.max(56, Math.min(170, size));
   const pose = cheer
     ? poseAt(t, [
         { f: 0, p: { x: 960, y: ROOF_FEET - LEG_LEN * 0.62, scale: 0.62, yaw: 0, look: 0.2, armL: { a: 16, b: 8 }, armR: { a: 20, b: 8 } } },
@@ -497,9 +506,9 @@ export const TitleReveal: React.FC<Arch & TitleRevealProps> = ({ t, len, lines, 
         );
       })}
       <Hero look={LOOKS.pipHood} pose={{ ...pose, ...faceAt(t, cheer ? [[0, 'happy'], [27, 'smug']] : [[0, 'happy'], [22, 'smug']]) }} rimId="rimR" shadow={0.6} />
-      {!cheer && phone ? <BankPhone x={ph.x + 6} y={ph.y + 6} w={54} rot={-14} value="1 000 000 €" glow={1} gold /> : null}
+      {!cheer && phone ? <BankPhone x={ph.x + 6} y={ph.y + 6} w={54} rot={-14} value={phoneValue} glow={1} gold /> : null}
       {sparkle ? <Sparkle x={ph.x + 64} y={ph.y - 46} t={t - 16} s={1.2} /> : null}
-      <TitleCard t={t} lines={lines} accent={accent} accentT={accentT} y={y} size={size} />
+      <TitleCard t={t} lines={lines} accent={accent} accentT={accentT} y={yPx} size={sizePx} />
     </g>
   );
 };
@@ -600,7 +609,8 @@ export const CloseUpTurn: React.FC<Arch & CloseUpTurnProps> = ({ t, len, uid = '
       </g>
     );
   }
-  const sc = scale * (1 + 0.04 * clamp(t / len));
+  // `scale` is a zoom factor, not a size: a model writing 1 means "normal", but normal here is the default close-up
+  const sc = (scale < 2.5 ? 6.4 : scale) * (1 + 0.04 * clamp(t / len));
   const head = { x: 960, y: 720 };
   const redK = red * clamp(t / len);
   const pose: Pose = { ...basePose, x: head.x, y: head.y - HEAD.y * sc, scale: sc, yaw: 0.12, look: 0.1, armL: { a: 14, b: -6 }, armR: { a: 14, b: -6 }, headTilt: kf(t, [[0, 0], [18, 4]]), ...faceAt(t, [[0, expr]]) };
@@ -620,15 +630,15 @@ export const CloseUpTurn: React.FC<Arch & CloseUpTurnProps> = ({ t, len, uid = '
 // ---------- schematicClaim (S12): the schematic poses the claim and shows the hole ----------
 export const schematicClaimZ = z.object({
   variant: z.enum(['origin', 'formula']).default('origin'),
-  title: z.string().default('LE SOLDE'),
-  center: z.string().default('€'),
-  value: z.string().default('1 000 000 €'),
-  origin: z.string().default('ORIGINE'),
-  footnote: z.string().default('AUCUN SALAIRE · AUCUNE VENTE · RIEN'),
-  formula: z.string().default('E = mc²'),
-  chip: z.string().default('1 COOKIE · 30 G'),
-  countTo: z.number().default(2.7e15),
-  unit: z.string().default("JOULES D'ÉNERGIE"),
+  title: z.string().default(''),
+  center: z.string().default('?'),
+  value: z.string().default(''),
+  origin: z.string().default(''),
+  footnote: z.string().default(''),
+  formula: z.string().default(''),
+  chip: z.string().default(''),
+  countTo: z.number().default(0),
+  unit: z.string().default(''),
 });
 export type SchematicClaimProps = z.infer<typeof schematicClaimZ>;
 
@@ -668,9 +678,27 @@ export const SchematicClaim: React.FC<Arch & SchematicClaimProps> = ({ t, len, u
     <g transform="translate(430 420)">
       <circle r={130} fill="none" stroke={SCH.line} strokeWidth={6} opacity={easeOut(clamp(t / 8))} />
       <circle r={84} fill="none" stroke={SCH.line} strokeWidth={4} opacity={0.5} />
-      <text y={26} textAnchor="middle" fontFamily={FONT.title} fontWeight={800} fontSize={90} fill={GOLD_L} opacity={easeOut(clamp(t / 8))}>
-        {center}
-      </text>
+      {(() => {
+        // the model sometimes puts a whole sentence in `center`: wrap it and shrink it to the circle instead of letting it bleed across the frame
+        const words = center.trim().split(/\s+/).filter(Boolean);
+        const lines = center.trim().length > 9 && words.length > 1 ? [words.slice(0, Math.ceil(words.length / 2)).join(' '), words.slice(Math.ceil(words.length / 2)).join(' ')] : [center.trim()];
+        const longest = Math.max(...lines.map((l) => l.length), 1);
+        const size = Math.max(26, Math.min(90, Math.round(200 / (longest * 0.56))));
+        return lines.map((l, i) => (
+          <text
+            key={i}
+            y={size * 0.35 + (i - (lines.length - 1) / 2) * size * 1.02}
+            textAnchor="middle"
+            fontFamily={FONT.title}
+            fontWeight={800}
+            fontSize={size}
+            fill={GOLD_L}
+            opacity={easeOut(clamp(t / 8))}
+          >
+            {l}
+          </text>
+        ));
+      })()}
     </g>
     <SchLabel x={430} y={620} t={t - 4} text={value} size={52} color={GOLD_L} />
     <Arrow x0={630} y0={420} x1={880} y1={420} t={t - 10} color={SCH.dim} />
@@ -689,12 +717,12 @@ export const SchematicClaim: React.FC<Arch & SchematicClaimProps> = ({ t, len, u
 
 // ---------- schematicBar (S13): the schematic bar that shrinks, the annotated result ----------
 export const schematicBarZ = z.object({
-  title: z.string().default("POUVOIR D'ACHAT"),
-  unit: z.string().default('2 % PAR AN'),
-  years: z.number().int().positive().default(20),
-  rate: z.number().min(0).max(0.5).default(0.02),
-  ticks: z.array(z.string()).default(['0', '10 ANS', '20 ANS']),
-  result: z.string().default('−33 %'),
+  title: z.string().default(''),
+  unit: z.string().default(''),
+  years: z.number().int().positive().default(10),
+  rate: z.number().min(0).max(0.5).default(0),
+  ticks: z.array(z.string()).default([]),
+  result: z.string().default(''),
 });
 export type SchematicBarProps = z.infer<typeof schematicBarZ>;
 
@@ -734,12 +762,15 @@ export const SchematicBar: React.FC<Arch & SchematicBarProps> = ({ t, title, uni
 // ---------- arrivalWalk (S15): the wide low angle, a figure walks out of the dusk ----------
 export const arrivalWalkZ = z.object({
   cast: z.enum(['suit', 'mo', 'sis', 'mom', 'doc', 'ado', 'meme', 'agent']).default('suit'),
-  chip: z.boolean().default(true),
+  chip: z.boolean().default(false),
+  chipValue: z.string().default(''),
+  chipCaption: z.string().default(''),
+  phoneValue: z.string().default(''),
   expression: z.enum(['worried', 'neutral']).default('worried'),
 });
 export type ArrivalWalkProps = z.infer<typeof arrivalWalkZ>;
 
-export const ArrivalWalk: React.FC<Arch & ArrivalWalkProps> = ({ t, len, cast, chip, expression = 'worried' }) => {
+export const ArrivalWalk: React.FC<Arch & ArrivalWalkProps> = ({ t, len, cast, chip, chipValue, chipCaption, phoneValue, expression = 'worried' }) => {
   const suitX = kf(t, [[0, 560], [60, 1050]]);
   const heroShock = expression === 'worried' ? [[0, 'worried'], [50, 'shock']] as [number, Pose['expr']][] : [[0, 'neutral']] as [number, Pose['expr']][];
   const suit = walkPose(suitX, t * 0.42, 905, 0.99, { look: 1 }, 1);
@@ -754,8 +785,8 @@ export const ArrivalWalk: React.FC<Arch & ArrivalWalkProps> = ({ t, len, cast, c
       <Rooftop t={t + 230} sunX={1000} sunY={620} red={1} low={40} cityLit={2.6} />
       <Hero look={LOOKS[cast]} pose={{ ...suit, ...faceAt(t, [[0, 'neutral']]) }} rimId="rimR" shadow={0} />
       <Hero look={LOOKS.pipHood} pose={{ ...pose, ...faceAt(t, heroShock) }} rimId="rimRed" shadow={0} />
-      <BankPhone x={ph.x + 8} y={ph.y + 8} w={40} rot={-10} value="1 000 000 €" glow={1} gold />
-      {chip ? <BalanceChip x={1080} y={210} t={t - 14} /> : null}
+      <BankPhone x={ph.x + 8} y={ph.y + 8} w={40} rot={-10} value={phoneValue} glow={1} gold />
+      {chip ? <BalanceChip x={1080} y={210} t={t - 14} value={chipValue} caption={chipCaption} /> : null}
       <Foreground blur={6}>
         <ellipse cx={130} cy={1010} rx={380} ry={220} fill="#10040C" />
       </Foreground>

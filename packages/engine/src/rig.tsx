@@ -339,9 +339,23 @@ export const Hero: React.FC<{ pose: Pose; shadow?: number; rimId?: string; look?
       </g>
     );
   };
-  const shoe = (o: { root: P; mid: P; end: P }) => (
-    <ellipse cx={o.end.x + pose.facing * 9} cy={o.end.y + 4} rx={22} ry={11} fill={L.shoe} stroke={L.line} strokeWidth={4} />
-  );
+  // a sneaker seen from the side: the upper, a dark sole line; each foot sits a little outward from its hip so the pair reads as two shoes, not one disc
+  const shoe = (o: { root: P; mid: P; end: P }, s: 1 | -1) => {
+    const cx = o.end.x + pose.facing * 8 + s * 5;
+    const cy = o.end.y + 3;
+    return (
+      <g>
+        <path
+          d={`M ${cx - 15} ${cy + 6} Q ${cx - 17} ${cy - 5} ${cx - 5} ${cy - 8} Q ${cx + 6} ${cy - 11} ${cx + 14} ${cy - 4} Q ${cx + 19} ${cy + 2} ${cx + 13} ${cy + 7} Z`}
+          fill={L.shoe}
+          stroke={L.line}
+          strokeWidth={4}
+          strokeLinejoin="round"
+        />
+        <path d={`M ${cx - 12} ${cy + 5} L ${cx + 12} ${cy + 5}`} stroke={L.line} strokeWidth={3} strokeLinecap="round" opacity={0.45} />
+      </g>
+    );
+  };
   // a mitten along the forearm: the palm, the thumb toward the body, two knuckle marks; or a pointing fist
   const hand = (o: { mid: P; end: P }, side: 1 | -1, kind: HandKind) => {
     const ang = (Math.atan2(o.end.x - o.mid.x, o.end.y - o.mid.y) * 180) / Math.PI;
@@ -430,7 +444,7 @@ export const Hero: React.FC<{ pose: Pose; shadow?: number; rimId?: string; look?
       <g transform={`translate(${pose.x} ${pose.y}) scale(${pose.scale}) rotate(${pose.spin} 0 -90)`} filter={`url(#${rimId})`}>
         <g transform={`translate(0 ${LEG_LEN}) scale(${1 + 0.6 * pose.squash} ${1 - pose.squash}) translate(0 ${-LEG_LEN})`}>
           {/* the far side is drawn first, so a turned body overlaps itself the right way */}
-          {pose.yaw < 0 ? <>{limb(j.legR, 12)}{shoe(j.legR)}{limb(j.legL, 12)}{shoe(j.legL)}</> : <>{limb(j.legL, 12)}{shoe(j.legL)}{limb(j.legR, 12)}{shoe(j.legR)}</>}
+          {pose.yaw < 0 ? <>{limb(j.legR, 12)}{shoe(j.legR, 1)}{limb(j.legL, 12)}{shoe(j.legL, -1)}</> : <>{limb(j.legL, 12)}{shoe(j.legL, -1)}{limb(j.legR, 12)}{shoe(j.legR, 1)}</>}
           {pose.yaw < 0 ? <>{limb(j.armR, 11)}{hand(j.armR, -1, pose.handR)}</> : <>{limb(j.armL, 11)}{hand(j.armL, 1, pose.handL)}</>}
           {torso}
           {pose.yaw < 0 ? <>{limb(j.armL, 11)}{hand(j.armL, 1, pose.handL)}</> : <>{limb(j.armR, 11)}{hand(j.armR, -1, pose.handR)}</>}

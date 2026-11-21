@@ -11,10 +11,18 @@ export const GOLD = '#E9C46A';
 export const GOLD_L = '#FFE9A8';
 export const GOLD_D = '#B8862B';
 
-export const fmtEur = (v: number) => Math.max(0, Math.round(v)).toLocaleString('fr-FR').replace(/[\u202F\u00A0]/g, ' ') + ' €';
+export const fmtEur = (v: number) => {
+  if (!Number.isFinite(v)) return '';
+  return Math.max(0, Math.round(v)).toLocaleString('fr-FR').replace(/[\u202F\u00A0]/g, ' ') + ' €';
+};
+export const fmtVal = (v: number, unit: string) => {
+  if (!Number.isFinite(v)) return '';
+  const n = Math.max(0, Math.round(v)).toLocaleString('fr-FR').replace(/[\u202F\u00A0]/g, ' ');
+  return unit ? `${n} ${unit}` : n;
+};
 export const balCol = (value: string, topped: boolean) => (topped ? GOLD_L : '#F6EFE3');
 
-export const BankPhone: React.FC<{ x: number; y: number; w: number; rot?: number; value: string; glow?: number; label?: string; gold?: boolean }> = ({ x, y, w, rot = 0, value, glow = 1, label = 'SOLDE', gold = false }) => {
+export const BankPhone: React.FC<{ x: number; y: number; w: number; rot?: number; value: string; glow?: number; label?: string; gold?: boolean }> = ({ x, y, w, rot = 0, value, glow = 1, label = '', gold = false }) => {
   const h = w * 2.05;
   const sz = value.length > 8 ? w * 0.135 : w * 0.17;
   return (
@@ -92,7 +100,7 @@ export const Cake: React.FC<{ x: number; y: number; s?: number; t: number; smoke
   );
 };
 
-export const BalanceChip: React.FC<{ x: number; y: number; t: number; w?: number; value?: string; caption?: string }> = ({ x, y, t, w = 680, value = '1 000 000 €', caption = 'ORIGINE' }) => {
+export const BalanceChip: React.FC<{ x: number; y: number; t: number; w?: number; value?: string; caption?: string; label?: string }> = ({ x, y, t, w = 680, value = '', caption = '', label = '' }) => {
   if (t < 0) return null;
   const s = backOut(clamp(t / 8));
   const blink = Math.floor(t / 5) % 2 ? 1 : 0.55;
@@ -100,16 +108,22 @@ export const BalanceChip: React.FC<{ x: number; y: number; t: number; w?: number
     <g transform={`translate(${x} ${y}) scale(${s}) rotate(2)`}>
       <rect x={-w / 2} y={-64} width={w} height={128} rx={22} fill="#0B0816" opacity={0.78} />
       <rect x={-w / 2} y={-64} width={w} height={128} rx={22} fill="none" stroke={GOLD} strokeWidth={3} opacity={0.8} />
-      <text x={-w / 2 + 34} y={-14} fontFamily={FONT.ui} fontSize={30} fill="#7E8DA6" letterSpacing={3}>
-        SOLDE
-      </text>
-      <text x={-w / 2 + 34} y={44} fontFamily={FONT.ui} fontSize={50} fill={GOLD_L} fontWeight={700}>
-        {value}
-      </text>
+      {label ? (
+        <text x={-w / 2 + 34} y={-14} fontFamily={FONT.ui} fontSize={30} fill="#7E8DA6" letterSpacing={3}>
+          {label}
+        </text>
+      ) : null}
+      {value ? (
+        <text x={-w / 2 + 34} y={44} fontFamily={FONT.ui} fontSize={50} fill={GOLD_L} fontWeight={700}>
+          {value}
+        </text>
+      ) : null}
       <line x1={w / 2 - 250} y1={-34} x2={w / 2 - 250} y2={34} stroke="#7E8DA6" strokeWidth={2} opacity={0.5} />
-      <text x={w / 2 - 30} y={-14} textAnchor="end" fontFamily={FONT.ui} fontSize={30} fill="#7E8DA6" letterSpacing={3}>
-        {caption}
-      </text>
+      {caption ? (
+        <text x={w / 2 - 30} y={-14} textAnchor="end" fontFamily={FONT.ui} fontSize={30} fill="#7E8DA6" letterSpacing={3}>
+          {caption}
+        </text>
+      ) : null}
       <text x={w / 2 - 30} y={46} textAnchor="end" fontFamily={FONT.title} fontWeight={800} fontSize={54} fill={SCH.live} opacity={blink}>
         {'?'}
       </text>

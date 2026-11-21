@@ -61,8 +61,9 @@ const DURATION_LABEL: Record<Duration, string> = {
 const WORLD_LABEL: Record<World, { title: string; sub: string }> = {
   urbain: { title: 'Nuit urbaine', sub: 'toits, escaliers, néons' },
   maison: { title: 'Maison', sub: 'cuisine, chambre, bureau' },
-  ecole: { title: 'École', sub: 'classe, étude, couloir' },
+  ecole: { title: 'École', sub: 'classe, cantine, étude' },
   cosmos: { title: 'Cosmos', sub: 'schémas, toits, nuit' },
+  public: { title: 'Public', sub: 'bureau, cantine, classe' },
 };
 
 const NARRATION_LABEL: Record<Narration, { title: string; sub: string }> = {

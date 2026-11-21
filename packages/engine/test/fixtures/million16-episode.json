@@ -66,6 +66,7 @@
       "archetypeProps": {
         "mood": "curious",
         "phone": "8,50 €",
+        "phoneLabel": "SOLDE",
         "glow": 0.15,
         "buzz": true,
         "cake": true
@@ -78,7 +79,12 @@
       "key": 14,
       "note": "l'écran du téléphone dans une main : le solde saute à 1 000 000 €",
       "archetype": "phoneJump",
-      "archetypeProps": {}
+      "archetypeProps": {
+        "from": 312.44,
+        "to": 1000000,
+        "unit": "€",
+        "phoneLabel": "SOLDE"
+      }
     },
     {
       "id": "S3",
@@ -90,6 +96,7 @@
       "archetypeProps": {
         "mood": "cheer",
         "phone": "1 000 000 €",
+        "phoneLabel": "SOLDE",
         "glow": 1,
         "ring": true,
         "cake": true
@@ -102,7 +109,10 @@
       "key": 20,
       "note": "la console dans son emballage posée sur le bureau, Pip triomphe, étiquette PAYÉ qui se dessine",
       "archetype": "tagObject",
-      "archetypeProps": {}
+      "archetypeProps": {
+        "tag": "PAYÉ",
+        "mark": "check"
+      }
     },
     {
       "id": "S5",
@@ -176,6 +186,24 @@
       "note": "l'écran du téléphone roule vite vers le bas : les dépenses passent, le solde tombe à 12 €",
       "archetype": "phoneDrain",
       "archetypeProps": {
+        "from": 1000000,
+        "to": 12,
+        "unit": "€",
+        "phoneLabel": "SOLDE",
+        "drains": [
+          {
+            "at": 9,
+            "text": "- 249,99 €"
+          },
+          {
+            "at": 17,
+            "text": "- 4 800,00 €"
+          },
+          {
+            "at": 25,
+            "text": "- 12 000,00 €"
+          }
+        ],
         "sparkleAt": 27
       }
     },
@@ -186,7 +214,12 @@
       "key": 12,
       "note": "l'écran : le solde se réécrit tout seul de 12 € à 1 000 000 €, anneau d'or",
       "archetype": "phoneRestore",
-      "archetypeProps": {}
+      "archetypeProps": {
+        "from": 12,
+        "to": 1000000,
+        "unit": "€",
+        "pill": "SOLDE RESTAURÉ"
+      }
     },
     {
       "id": "S10",
@@ -198,6 +231,7 @@
       "archetypeProps": {
         "mood": "uneasy",
         "phone": "1 000 000 €",
+        "phoneLabel": "SOLDE",
         "glow": 0.9,
         "cake": true,
         "deadCandle": true
@@ -228,7 +262,18 @@
       "key": 60,
       "note": "1 000 000 € au centre, flèche vers ORIGINE : '?', AUCUN SALAIRE · AUCUNE VENTE · RIEN",
       "archetype": "schematicClaim",
-      "archetypeProps": {}
+      "archetypeProps": {
+        "variant": "origin",
+        "title": "LE SOLDE",
+        "center": "€",
+        "value": "1 000 000 €",
+        "origin": "ORIGINE",
+        "footnote": "AUCUN SALAIRE · AUCUNE VENTE · RIEN",
+        "formula": "E = mc²",
+        "chip": "1 COOKIE · 30 G",
+        "countTo": 2700000000000000.0,
+        "unit": "JOULES D'ÉNERGIE"
+      }
     },
     {
       "id": "S13",
@@ -237,7 +282,18 @@
       "key": 72,
       "note": "barre POUVOIR D'ACHAT qui descend de 100 % à 67 %, −33 % EN 20 ANS, 2 % PAR AN",
       "archetype": "schematicBar",
-      "archetypeProps": {}
+      "archetypeProps": {
+        "title": "POUVOIR D'ACHAT",
+        "unit": "2 % PAR AN",
+        "years": 20,
+        "rate": 0.02,
+        "ticks": [
+          "0",
+          "10 ANS",
+          "20 ANS"
+        ],
+        "result": "-33 %"
+      }
     },
     {
       "id": "S14",
@@ -255,7 +311,14 @@
       "key": 44,
       "note": "le costume marche vers lui sur le toit, ciel rouge ; puce SOLDE 1 000 000 € · ORIGINE ?",
       "archetype": "arrivalWalk",
-      "archetypeProps": {}
+      "archetypeProps": {
+        "cast": "suit",
+        "chip": true,
+        "chipValue": "1 000 000 €",
+        "chipCaption": "ORIGINE",
+        "phoneValue": "1 000 000 €",
+        "expression": "worried"
+      }
     }
   ],
   "edit": [

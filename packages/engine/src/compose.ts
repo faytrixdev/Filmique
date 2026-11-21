@@ -8,6 +8,8 @@ import { storyboardPrompt } from './prompts/storyboard';
 import { DIRECTOR_SYSTEM } from './prompts/system';
 import { soundRules } from './sound/rules';
 import { resolveSettings, type Narration, type ProjectSettings } from './settings';
+import { bindVisuals, pairBeats, demandedWords, normalize, shotText } from './visuals';
+import { coerceProps } from './props-coerce';
 
 // composeEpisode: the four knobs in one call —
 //   1. draftScript      (LLM)   the hook → premise → numbered twist → looming question
@@ -151,7 +153,84 @@ export const draftStoryboard = async (input: ComposeInput, script: ScriptDraft, 
       ARCHETYPES,
     }).prompt,
   );
-  return adaptStoryboard(sb, secs);
+  const adapted = await adaptStoryboard(sb, secs);
+  const bound = await bindVisuals(adapted.shots, script.script, adapted.edit, llm);
+  if (process.env.HF_BIND_DEBUG) {
+    console.log('[bind] repaired', bound.repaired, 'still missing', JSON.stringify(bound.stillMissing));
+  }
+  if (bound.repaired > 0) {
+    adapted.shots = adapted.shots.map((shot) => {
+      const fix = bound.fixes[shot.id];
+      if (!fix) return shot;
+      return { ...shot, archetype: fix.archetype, archetypeProps: fix.props };
+    });
+  }
+  adapted.shots = hardenStoryboard(adapted.shots, script.title, script.script);
+  return adapted;
+};
+
+/** The rules the model breaks most often, enforced by the engine: a title always
+ * has two lines and closes the film, a free scene always shows something named
+ * after its beat, a schematic keeps its centre short. */
+export const hardenStoryboard = (shots: StoryboardDraft['shots'], title: string[], beats: { beat: string; text: string }[]): StoryboardDraft['shots'] => {
+  const pairs = pairBeats(shots, beats, []);
+  const hardened = shots.map((shot) => {
+    const props = (shot.archetypeProps ?? {}) as Record<string, unknown>;
+    const beatText = pairs.get(shot.id) ?? '';
+    const wanted = demandedWords(beatText);
+    const noun = wanted[0]?.toUpperCase() ?? '';
+    if (shot.archetype === 'titleReveal') {
+      const lines = Array.isArray(props.lines) ? (props.lines as string[]) : [];
+      const first = (lines[0] ?? '').trim() || title[0] || '';
+      const second = (lines[1] ?? '').trim() || title[1] || title[0] || '';
+      if (first === lines[0] && second === lines[1]) return shot;
+      return { ...shot, archetypeProps: { ...props, lines: [first, second] } };
+    }
+    if (shot.archetype === 'schematicClaim') {
+      // `center` lives inside a 130 px circle: a whole sentence there bleeds across the frame. Keep the short token, demote the sentence to the legend.
+      const center = typeof props.center === 'string' ? props.center.trim() : '';
+      const value = typeof props.value === 'string' ? props.value.trim() : '';
+      if (center.length > 9) {
+        const words = center.split(/\s+/).filter(Boolean);
+        const token = words.find((w) => /\d/.test(w)) ?? words[0] ?? '';
+        return { ...shot, archetypeProps: { ...props, center: token, value: value || center } };
+      }
+      return shot;
+    }
+    if (shot.archetype === 'scene' || shot.archetype === 'present') {
+      // the beat's noun has to reach the picture: a caption covers it, otherwise the
+      // object's label must name it (a model often labels an object with a verb)
+      const shown = normalize(shotText(props).join(' '));
+      const covers = wanted.length === 0 || wanted.some((w) => shown.includes(w));
+      if (shot.archetype === 'scene') {
+        const objects = Array.isArray(props.objects) ? (props.objects as Record<string, unknown>[]) : [];
+        if (objects.length === 0) {
+          if (typeof props.caption === 'string' && props.caption.trim().length > 0) return shot;
+          return { ...shot, archetypeProps: { ...props, objects: [{ kind: 'ticket', label: noun, x: 0.72, y: 0.55, s: 1, rot: 0, at: 2, anim: 'pop' }] } };
+        }
+        if (covers || !noun) return shot;
+        const first = objects[0] ?? {};
+        const next = { ...first, label: noun };
+        return { ...shot, archetypeProps: { ...props, objects: [next, ...objects.slice(1)] } };
+      }
+      const object = props.object as Record<string, unknown> | undefined;
+      const caption = typeof props.caption === 'string' ? props.caption : '';
+      if (!object || (typeof object.label === 'string' ? object.label.trim().length === 0 : true)) {
+        if (caption.trim().length > 0) return shot;
+        return { ...shot, archetypeProps: { ...props, object: { ...(object ?? {}), kind: 'ticket', label: noun, x: 0.62, y: 0.55, s: 1, rot: 0, at: 2, anim: 'pop' } } };
+      }
+      if (covers || !noun) return shot;
+      return { ...shot, archetypeProps: { ...props, object: { ...object, label: noun } } };
+    }
+    return shot;
+  });
+  // the title is the signature: whatever the model ordered, it lands on the last shot
+  const last = hardened.map((s) => s.archetype).lastIndexOf('titleReveal');
+  if (last >= 0 && last < hardened.length - 1) {
+    const [titleShot] = hardened.splice(last, 1);
+    hardened.push(titleShot);
+  }
+  return hardened;
 };
 
 // ---------- deterministic adaptation (the SaaS ceiling: zero Zod surprises out) ----------
@@ -167,144 +246,47 @@ const validCast = async (): Promise<string[]> => {
 // LLM-written archetype props drift (numbers as strings, invented enum values,
 // nulls, single lines): one coercion round per Zod issue batch, then strip the
 // props — the archetype keeps rendering with schema defaults, never black.
-const editDistance = (a: string, b: string): number => {
-  const dp = Array.from({ length: b.length + 1 }, (_, j) => j);
-  for (let i = 1; i <= a.length; i++) {
-    let prev = dp[0];
-    dp[0] = i;
-    for (let j = 1; j <= b.length; j++) {
-      const tmp = dp[j];
-      dp[j] = Math.min(dp[j] + 1, dp[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
-      prev = tmp;
-    }
-  }
-  return dp[b.length];
-};
+export { coerceProps } from './props-coerce';
 
-const coerceOnce = (raw: Record<string, unknown>, issues: { path: PropertyKey[]; code?: string; expected?: string; values?: unknown[]; limit?: unknown }[]): { next: Record<string, unknown>; fixed: Set<string> } => {
-  const out = { ...raw };
-  const fixed = new Set<string>();
-  for (const issue of issues) {
-    // nested array items (ticks.0, lines.1…): coerce the element in place
-    if (issue.path.length === 2 && typeof issue.path[1] === 'number') {
-      const k = String(issue.path[0]);
-      const arr = out[k];
-      if (!Array.isArray(arr)) continue;
-      const idx = issue.path[1] as number;
-      const item = arr[idx];
-      if (issue.expected === 'string' && typeof item === 'number') {
-        arr[idx] = String(item);
-        fixed.add(k);
-      } else if ((issue.expected === 'number' || issue.expected === 'int') && typeof item === 'string') {
-        const n = Number(item.replace(',', '.').replace(/[^0-9.+-]/g, ''));
-        if (Number.isFinite(n)) {
-          arr[idx] = issue.expected === 'int' ? Math.round(n) : n;
-          fixed.add(k);
-        }
-      }
-      continue;
-    }
-    if (issue.path.length !== 1) continue;
-    const k = String(issue.path[0]);
-    if (!(k in out)) continue;
-    const v = out[k];
-    if (v === null) {
-      delete out[k];
-      fixed.add(k);
-      continue;
-    }
-    if ((issue.expected === 'number' || issue.expected === 'int') && typeof v === 'string') {
-      const n = Number(String(v).replace(',', '.').replace(/[^0-9.+-]/g, ''));
-      if (Number.isFinite(n)) {
-        out[k] = issue.expected === 'int' ? Math.round(n) : n;
-        fixed.add(k);
-      }
-    } else if (issue.expected === 'int' && typeof v === 'number' && Number.isFinite(v)) {
-      out[k] = Math.round(v);
-      fixed.add(k);
-    } else if (issue.expected === 'number' && typeof v === 'string') {
-      const n = Number(String(v).replace(',', '.').replace(/[^0-9.+-]/g, ''));
-      if (Number.isFinite(n)) {
-        out[k] = n;
-        fixed.add(k);
-      }
-    } else if (issue.expected === 'boolean' && typeof v === 'string') {
-      const s = String(v).toLowerCase();
-      if (s === 'true' || s === 'yes' || s === '1') {
-        out[k] = true;
-        fixed.add(k);
-      } else if (s === 'false' || s === 'no' || s === '0') {
-        out[k] = false;
-        fixed.add(k);
-      }
-    } else if ((issue.expected === 'array' || issue.expected === 'tuple') && typeof v === 'string') {
-      out[k] = String(v).split(/\s*[|,/\n]\s*/).filter(Boolean);
-      fixed.add(k);
-    } else if (issue.expected === 'string' && typeof v === 'number') {
-      out[k] = String(v);
-      fixed.add(k);
-    } else if (Array.isArray(issue.values) && typeof v === 'string') {
-      const lower = String(v).toLowerCase();
-      const hit =
-        issue.values.find((o) => String(o).toLowerCase() === lower) ??
-        issue.values.find((o) => String(o).toLowerCase().includes(lower) || lower.includes(String(o).toLowerCase())) ??
-        issue.values.find((o) => {
-          const c = String(o).toLowerCase();
-          const max = Math.max(c.length, lower.length) > 7 ? 3 : 2;
-          return editDistance(c, lower) <= max;
-        });
-      if (hit !== undefined) {
-        out[k] = hit;
-        fixed.add(k);
-      }
-    } else if (issue.code === 'too_small' && Array.isArray(v) && typeof issue.limit === 'number') {
-      while (v.length < issue.limit) v.push('');
-      fixed.add(k);
-    } else if (issue.code === 'too_small' && typeof v === 'number' && typeof issue.limit === 'number') {
-      out[k] = issue.limit + 1;
-      fixed.add(k);
-    } else if (issue.code === 'too_big' && typeof v === 'number' && typeof issue.limit === 'number') {
-      out[k] = issue.limit;
-      fixed.add(k);
-    }
-  }
-  return { next: out, fixed };
-};
-
-export const coerceProps = (PropsZ: z.ZodType<{ [k: string]: unknown }>, raw: Record<string, unknown>): Record<string, unknown> | null => {
-  let cur = { ...raw };
-  for (let i = 0; i < 6; i++) {
-    const r = PropsZ.safeParse(cur);
-    if (r.success) return r.data as Record<string, unknown>;
-    const { next, fixed } = coerceOnce(cur, r.error.issues as never);
-    // Keys no coercion could rescue (invented enums, nonsense shapes) are dropped:
-    // their schema default kicks in while the salvaged props around them survive.
-    for (const issue of r.error.issues as { path: PropertyKey[] }[]) {
-      if (issue.path.length !== 1) continue;
-      const k = String(issue.path[0]);
-      if (!(k in next)) continue;
-      if (!fixed.has(k) && next[k] === cur[k]) delete next[k];
-    }
-    if (JSON.stringify(next) === JSON.stringify(cur)) return null;
-    cur = next as Record<string, unknown>;
-  }
-  return null;
-};
+// archetypes whose picture is only text: with nothing written they render an empty plate
+const TEXT_ONLY = new Set(['schematicClaim', 'schematicBar']);
 
 export const adaptStoryboard = async (sb: StoryboardDraft, durationS?: number): Promise<StoryboardDraft> => {
   const fps = 30;
   const allowed = await validCast();
   const { ARCHETYPES } = await import('./archetypes/index');
+  const { SCENE_SETS } = await import('./archetypes/scene');
   const shots = sb.shots.map((s, i) => {
-    // unknown archetype names fall back to wideRoom (a visible generic room) — never an unbound black segment
-    const arch = s.archetype ? (ARCHETYPES[s.archetype] ? s.archetype : 'wideRoom') : undefined;
-    let props = s.archetypeProps ?? undefined;
+    // unknown archetype names fall back to the generic scene — never an unbound black segment
+    const { archetypeProps: rawProps, ...rest } = s;
+    let arch = s.archetype ? (ARCHETYPES[s.archetype] ? s.archetype : 'scene') : undefined;
+    let props = rawProps ?? undefined;
     if (arch) {
       const coerced = coerceProps(ARCHETYPES[arch].PropsZ, props ?? {});
-      props = coerced ?? undefined; // unsalvageable → schema defaults
+      if (coerced) {
+        props = coerced;
+      } else if (!ARCHETYPES[arch].PropsZ.safeParse({}).success) {
+        // the archetype cannot render without the props it missed: the generic
+        // scene shows the beat instead of an empty prop
+        arch = 'scene';
+        props = undefined;
+      } else {
+        props = undefined;
+      }
+      // a chart with no text at all is a dead frame: the generic scene shows the beat instead
+      if (arch && TEXT_ONLY.has(arch) && !shotText(props as Record<string, unknown> | undefined).some((t) => t.trim().length > 0)) {
+        arch = 'scene';
+        props = undefined;
+      }
+      if (arch === 'scene' || arch === 'present') {
+        const wanted = String(s.set ?? '').toLowerCase();
+        if (SCENE_SETS.includes(wanted as (typeof SCENE_SETS)[number])) {
+          props = { ...(props ?? {}), set: wanted };
+        }
+      }
     }
     return {
-      ...s,
+      ...rest,
       id: `S${i + 1}`,
       key: Math.min(80, Math.max(8, Math.round(s.key))),
       set: s.set.toLowerCase(),
@@ -312,22 +294,35 @@ export const adaptStoryboard = async (sb: StoryboardDraft, durationS?: number): 
       ...(props !== undefined ? { archetypeProps: props } : {}),
     };
   });
-  // duration adaptation: scale the shot keys toward durationS without touching the order
-  if (durationS && durationS > 3) {
+  // duration adaptation: the model writes storyboard keys in its own units, so the plan is
+  // always rescaled to fill the requested duration. Each shot keeps its weight, clamped to
+  // a legible minimum and a maximum, and the rounding drift is spread over the longest shots.
+  if (durationS && durationS > 3 && shots.length > 0) {
+    const MIN_KEY = 14;
+    const MAX_KEY = 240;
     const target = Math.round(durationS * fps) - Math.round(sb.tail * fps);
     const sum = shots.reduce((n, s) => n + s.key, 0);
-    const ratio = target / sum;
-    if (ratio >= 0.55 && ratio <= 1.8 && Math.abs(sum - target) / target > 0.05) {
-      let re = 0;
-      for (const s of shots) {
-        s.key = Math.min(80, Math.max(8, Math.round(s.key * ratio)));
-        re += s.key;
-      }
-      // nudge the last shot to land on the target as close as rounds allow
-      const diff = target - re;
-      if (diff !== 0) {
-        const last = shots[shots.length - 1];
-        last.key = Math.min(80, Math.max(8, last.key + diff));
+    if (sum > 0 && target > MIN_KEY * shots.length && Math.abs(sum - target) / target > 0.02) {
+      const ratio = target / sum;
+      for (const s of shots) s.key = Math.min(MAX_KEY, Math.max(MIN_KEY, Math.round(s.key * ratio)));
+      for (let pass = 0; pass < 4; pass++) {
+        const diff = target - shots.reduce((n, s) => n + s.key, 0);
+        if (diff === 0) break;
+        const step = diff > 0 ? 1 : -1;
+        let left = Math.abs(diff);
+        const order = [...shots].sort((a, b) => (step > 0 ? b.key - a.key : a.key - b.key));
+        while (left > 0) {
+          let moved = false;
+          for (const s of order) {
+            const next = s.key + step;
+            if (left === 0) break;
+            if (next < MIN_KEY || next > MAX_KEY) continue;
+            s.key = next;
+            left -= 1;
+            moved = true;
+          }
+          if (!moved) break;
+        }
       }
     }
   }

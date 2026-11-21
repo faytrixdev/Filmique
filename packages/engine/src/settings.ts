@@ -12,7 +12,7 @@ export const DURATIONS = [15, 24, 30, 45, 60] as const;
 export const TONES = ['playful', 'tense', 'warm'] as const;
 export const NARRATIONS = ['conteur', 'prof', 'pote'] as const;
 export const RHYTHMS = ['pose', 'standard', 'nerveux'] as const;
-export const WORLDS = ['urbain', 'maison', 'ecole', 'cosmos'] as const;
+export const WORLDS = ['urbain', 'maison', 'ecole', 'cosmos', 'public'] as const;
 export const CAPTIONS = ['none', 'bloc', 'mot', 'karaoke'] as const;
 
 export type Format = (typeof FORMATS)[number];
@@ -61,8 +61,9 @@ export const NARRATION_BRIEF: Record<Narration, string> = {
 export const WORLD_SETS: Record<World, string[]> = {
   urbain: ['rooftop', 'stairwell', 'kitchen'],
   maison: ['kitchen', 'bedroom', 'study'],
-  ecole: ['classroom', 'study', 'stairwell'],
+  ecole: ['classroom', 'cantine', 'study', 'stairwell'],
   cosmos: ['schematic', 'rooftop'],
+  public: ['office', 'cantine', 'classroom', 'kitchen'],
 };
 
 /** Shot-count range per editing rhythm: more cuts = a faster film. */

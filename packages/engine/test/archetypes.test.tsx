@@ -11,20 +11,45 @@ const million = EpisodeJsonZ.parse(
   JSON.parse(readFileSync(resolve(__dirname, 'fixtures/million16-episode.json'), 'utf8')),
 );
 
-// titleReveal's two title lines are the one required prop the LLM must fill
-const MIN_PROPS: Record<string, Record<string, unknown>> = { titleReveal: { lines: ['ET SI TU', 'DEVENAIS RICHE ?'] } };
+// The props an archetype cannot render without: the ones that carry the story's own
+// content. Everything else has a neutral default, so a bare archetype never shows
+// another film's text.
+const MIN_PROPS: Record<string, Record<string, unknown>> = {
+  titleReveal: { lines: ['ET SI TU', 'DEVENAIS RICHE ?'] },
+  phoneJump: { from: 12, to: 1200 },
+  phoneDrain: { from: 1200, to: 12 },
+  phoneRestore: { from: 12, to: 1200 },
+  tagObject: { tag: 'TICKET' },
+};
 
 describe('archetype registry', () => {
-  it('has the 31 catalogue archetypes', () => {
+  it('has the 33 catalogue archetypes', () => {
     expect(Object.keys(ARCHETYPES).sort()).toEqual(
       [
         'arrivalWalk', 'bitePause', 'catchSave', 'cityTurn', 'closeUpTurn', 'copyCharacter', 'copySwarm', 'edgeFall',
         'ghostFlicker', 'landedDizzy', 'lowAngleSky', 'objectRain', 'pastePop', 'pasteStack', 'pilesLand',
-        'phoneDrain', 'phoneJump', 'phoneRestore', 'plantGrid', 'selectCharacter', 'selectCopy', 'schematicBar',
-        'schematicClaim', 'smashFloor', 'stepOver', 'tagObject', 'titleReveal', 'tripStumble', 'uneasyCopies',
-        'wideRoom', 'wrongAnswer',
+        'phoneDrain', 'phoneJump', 'phoneRestore', 'plantGrid', 'present', 'scene', 'selectCharacter', 'selectCopy',
+        'schematicBar', 'schematicClaim', 'smashFloor', 'stepOver', 'tagObject', 'titleReveal', 'tripStumble',
+        'uneasyCopies', 'wideRoom', 'wrongAnswer',
       ].sort(),
     );
+  });
+
+  it('describes every archetype and names the sets it draws', () => {
+    for (const [name, A] of Object.entries(ARCHETYPES)) {
+      expect(A.describe.length, name).toBeGreaterThan(10);
+      expect(A.sets.length, name).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps the catalogue free of the money film\'s default content', () => {
+    for (const [name, A] of Object.entries(ARCHETYPES)) {
+      const defaults = A.PropsZ.parse(MIN_PROPS[name] ?? {});
+      const text = JSON.stringify(defaults);
+      for (const leak of ['SOLDE', 'PAY\u00c9', '1 000 000', 'ORIGINE', 'LE SOLDE', 'POUVOIR']) {
+        expect(text.includes(leak), `${name} leaks ${leak}`).toBe(false);
+      }
+    }
   });
 
   for (const [name, A] of Object.entries(ARCHETYPES)) {
@@ -95,13 +120,13 @@ describe('buildShotMap', () => {
     expect(Object.keys(map)).toEqual(['S1', 'S12']);
   });
 
-  it('binds an unknown archetype to the wideRoom fallback instead of dropping it', () => {
+  it('binds an unknown archetype to the generic scene instead of dropping it', () => {
     const bad = { ...million, shots: [{ ...million.shots[0], archetype: 'nonexistent' }] };
     const map = buildShotMap(bad);
     expect(Object.keys(map)).toEqual(['S1']);
   });
 
-  it('falls back to defaults when props fail the archetype schema, never throws', () => {
+  it('falls back to the generic scene when props fail the archetype schema, never throws', () => {
     const bad = { ...million, shots: [{ ...million.shots[0], archetype: 'wideRoom', archetypeProps: { mood: 'furious' } }] };
     const map = buildShotMap(bad);
     expect(Object.keys(map)).toEqual(['S1']);
